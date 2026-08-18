@@ -1,0 +1,263 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jul  8 12:42:58 2020
+
+@author: Laurier
+"""
+import numpy as np
+from matplotlib import pyplot as plt, ticker as mticker
+from scipy.interpolate import interp1d
+import pyqtgraph as pg
+from scipy.optimize import curve_fit
+import math
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+
+alphaMB= [0.1,0.1,0.3,0.02]#[0.1,0.1,0.3,0.02]
+DpermMB=[32,100,4E4,3.5E7] #[32,100,4E4,3.5E7]
+tauMB = [7.96E-12,7.96E-9,53.05E-6,7.958E-3] #[7.96E-12,7.96E-9,53.05E-6,7.958E-3]
+sigmaMB = 0.02
+
+alphaMG= [0.1,0.15,0.22,0.00] # DpermMG[i]/(1+(1j*w*tauMG[i])**(1-alphaMG[i]))   [0.1,0.15,0.12,0.10] 0.3,
+DpermMG=[45,400,2E5,4.5E7] #[45,400,2E5,4.5E7] 0.1E6,
+tauMG = [7.96E-12,15.92E-9,106.1E-6,5.305E-3] #[7.96E-12,15.92E-9,106.1E-6,5.305E-3] 4000E-4,
+sigmaMG = 0.2
+
+alphaDu= [0.15,0.1,0.2,0] #[0.15,0.1,0.2,0]
+perminfDu = 4
+DpermDu=[40,200,10000,1E6] #[10,180,5E3,1E5] 
+tauDu = [7.958E-12,7.958E-9,1.592E-4,1.592E-2] #[13.26E-12,79.58E-9,159.15E-6,15.915E-3]
+sigmaDu = 0.02
+
+sigmaLCF = 1.7
+alphaLCF= [0.1,0,0,0]
+perminfLCF = 4
+DpermLCF=[65,40,0,0]
+tauLCF = [7.958E-12,1.592E-9,1.592E-4,1.592E-2]
+
+perminf = 4
+permvide = 8.8541878128E-12 #varepsilon_0 ou permitivite vide
+
+a= 0.693E-3 # en m Dura->mb ou mg
+b= 2.1558E-3 # en m CSF->mg
+###a2= 1.112E-3
+b2= 0.7826E-3 #en m 
+##a=0.3448E-3 #Epaisseur CSF
+##b= 0.6249E-3 #Epaisseur CSF
+
+T4cMg = []
+T4cMgP = []
+T4cMgP2 = []
+T3cMb = []
+T3cMg = []
+T3cMg2 = []
+T3cMg3 = []
+T2cCSf = []
+pp=[]
+omega2=np.logspace(1,12,num=150, endpoint=True, base=10.0, dtype=None, axis=0)
+for w in omega2:
+	#print('Frequence:',w)
+	varepMG = 0
+	varepMB = 0
+	varepDu = 0
+	varepLCF= 0
+	for i in range(len(alphaMG)):
+		varepMG +=  DpermMG[i]/(1+(1j*2*np.pi*w*tauMG[i])**(1-alphaMG[i])) 
+		varepDu +=  DpermDu[i]/(1+(1j*2*np.pi*w*tauDu[i])**(1-alphaDu[i])) 
+		varepMB +=  DpermMB[i]/(1+(1j*2*np.pi*w*tauMB[i])**(1-alphaMB[i])) 
+		varepLCF += DpermLCF[i]/(1+(1j*2*np.pi*w*tauLCF[i])**(1-alphaLCF[i])) 
+	varepMB2 = perminf+ varepMB  + sigmaMG/(1j*(w*2*np.pi*permvide))
+	varepMG2 = perminf+ varepMG  + sigmaDu/(1j*(w*2*np.pi*permvide)) 
+	varepDu2 = perminfDu+ varepDu  + sigmaMB/(1j*(w*2*np.pi*permvide))
+	varepLCF2 = perminfLCF+ varepLCF  + sigmaLCF/(1j*(w*2*np.pi*permvide))
+
+
+
+
+	lumiere = 2.998E8 #m/s
+	alphaW= 0.5 ##0.5*1.081 #0.485
+	alphaG= 0.43475#0.5*0.9
+	alphaL= 0.42#0.9#0.5*0.823
+	alphaD= 0.55#0.565#0.67#0.5*1.34
+	
+	MBA= (varepMB2.imag)
+	nMB= (np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))**(alphaW)   #- (w/(2*np.pi*1E14))*(np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))**(alphaW)*np.exp(-w/(2*np.pi*1E14)) #+varepMB2.real)
+	nMBii= 2.5*(np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) -varepMB2.real)))**2   #+ (w/(2*np.pi*1E14))*(np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))**(alphaW)*np.exp(-w/(2*np.pi*1E14))#**(0.2)#1.09)#**(alphaW) #+varepMB2.real)
+	MGA=((varepMG2.imag))
+	nMG= (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) +0.5*varepMG2.real))**(alphaG) #- (w/(2*np.pi*1E14))*(np.sqrt(0.5*(np.sqrt(varepMG2.real**2 + MGA**2) +varepMG2.real)))**(alphaG)*np.exp(-w/(2*np.pi*1E14)) #+varepMG2.real)# ((0.5*4*np.pi*np.pi*w**2   *1E-12*varepMG2.real*((1+ (sigmaMG/(2*np.pi*w*varepMG2.real))**2)**(1/2)+1))**(1/2))#
+	nMGii=   (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) -0.5*varepMG2.real))**(2)   #+ (w/(2*np.pi*1E14))*(np.sqrt(0.5*(np.sqrt(varepMG2.real**2 + MGA**2) +varepMG2.real)))**(alphaG)*np.exp(-w/(2*np.pi*1E14))#**(0.08) #2.99E8*np.sqrt(varepMG2.real*8.8E-12 *1E-8 /2)*np.sqrt(np.sqrt(1+ (sigmaMG/(w*varepMG2.real*8E-12  ) )**2 )) #**(alphaG) #  ((0.5*4*np.pi*np.pi*w**2   *1E-20*varepMG2.real*((1+ (sigmaMG/(2*np.pi*w*permvide*varepMG2.real))**2)**(1/2)-1))**(1/2))#
+	LCFA=(varepLCF2.imag)
+	nLCF= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) +0.5*varepLCF2.real))**(alphaL)# - (w/(2*np.pi*2E11))*(np.sqrt(0.5*(np.sqrt(varepLCF2.real**2 + LCFA**2) +varepLCF2.real)))**(alphaL)*np.exp(-w/(2*np.pi*1E12)) #lumi*(varepLCF2.real- LCFA/(0.5*w**2  *Ordg *varepLCF2.real*((1+ (sigmaLCF/(w*varepLCF2.real*ordre2))**2)**(1/2)-1))**(1/2))**(1/2)
+	nLCFii= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) -0.5*varepLCF2.real)) #+ (w/(0.5E12))*(np.sqrt(0.5*(np.sqrt(varepLCF2.real**2 + LCFA**2) +varepLCF2.real)))**(alphaL)*np.exp(-w/(1E12))#**(0.46)#1.95)#**(alphaL)
+	DUA=(varepDu2.imag)
+	nDu= (np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) +0.5*varepDu2.real ))**(alphaD)  #- (w/(2*np.pi*1E14))*(np.sqrt(0.5*(np.sqrt(varepDu2.real**2 + DUA**2) +varepDu2.real)))**(alphaD)*np.exp(-w/(2*np.pi*1E14)) #lumi*(varepDu2.real- DUA/(0.5*w**2 *Ordg*varepDu2.real*((1+ (sigmaDu/(w*varepDu2.real*ordre2))**2)**(1/2)-1))**(1/2) )**(1/2)
+	nDuii=(np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) -0.5*varepDu2.real ))*np.exp(-2*np.pi*w/0.63E14) #-np.exp(-1/w)*(np.sqrt(0.5*(np.sqrt(varepDu2.real**2 + DUA**2) +varepDu2.real)))**(alphaD)#**(0.3)#2.2)#**(alphaD) #
+	
+	#if w < 1E3:
+		#nMB = 1.41
+		#nMBii = 7E-4
+		#nMG = 1.39
+		#nMGii = 5E-2
+		#nLCF = 1.33 
+		#nLCFii = 137
+		#nDu = 1.47 
+		#nDuii = 0.14
+
+	KLCF = 2*np.pi*w*nLCF/lumiere #k2 #w*(np.sqrt(8E-12*varepLCF2.real/2)*np.sqrt( 1+ (sigmaMB/(8E-12*varepLCF2.real*w) )**2 ) +1  )**(alphaL)/lumiere# 
+	KapLCF= 2*np.pi*w*nLCFii/lumiere #w*(np.sqrt(8E-12*varepLCF2.imag/2)*np.sqrt( 1+ (sigmaMB/(8E-12*varepLCF2.imag*w) )**2 ) -1  )**(alphaL)/lumiere# 
+	KMB = 2*np.pi*w*nMB/lumiere #k3 #w*(np.sqrt(8E-12*varepMB2.real/2)*np.sqrt( 1+ (sigmaMB/(8E-12*varepMB2.real*w) )**2 ) +1  )**(alphaW)/lumiere # 
+	KapMB = 2*np.pi*w*nMBii/lumiere # w*(np.sqrt(8E-12*varepMB2.imag/2)*np.sqrt( 1+ (sigmaMB/(8E-12*varepMB2.imag*w) )**2 ) -1  )**(alphaW)/lumiere # w*nMBii/lumiere #
+
+	a21 = (nLCFii*nDu - nLCF*nDuii)/(nDu**2 + nDuii**2) #nLCF/nDu #
+	a31 = (nMBii*nDu - nMB*nDuii)/(nDu**2 + nDuii**2) #nMB/nDu #
+	a311 = (nMGii*nDu - nMG*nDuii)/(nDu**2 + nDuii**2) # nMG/nDu #
+	a32 = (nMBii*nLCF - nMB*nLCFii)/(nLCF**2 + nLCFii**2) #nMB/nLCF #
+	a322 = (nMGii*nLCF - nMG*nLCFii)/(nLCF**2 + nLCFii**2) # nMG/nLCF #
+	a41 = (nMGii*nDu - nMG*nDuii)/(nDu**2 + nDuii**2) # nMG/nDu #
+	a42 = (nMGii*nLCF - nMG*nLCFii)/(nLCF**2 + nLCFii**2) #nMG/nLCF #
+	a43 = (nMGii*nMB - nMG*nMBii)/(nMB**2 + nMBii**2) # nMG/nMB #  #les a sont la partie réelle et b l'imaginaire. Il sont croisées dans la sol. finale :'(
+	b21 = (nLCF*nDu + nLCFii*nDuii)/(nDu**2 + nDuii**2) # nLCF/nDu #
+	b31 = (nMB*nDu + nMBii*nDuii)/(nDu**2 + nDuii**2) # nMB/nDu #
+	b311 = (nMG*nDu + nMGii*nDuii)/(nDu**2 + nDuii**2) # nMG/nDu #
+	b32 = (nMB*nLCF + nMBii*nLCFii)/(nLCF**2 + nLCFii**2) # nMB/nLCF #
+	b322 = (nMG*nLCF + nMGii*nLCFii)/(nLCF**2 + nLCFii**2) # nMG/nLCF #
+	b41 = (nMG*nDu + nMGii*nDuii)/(nDu**2 + nDuii**2) # nMG/nDu #
+	b41s =  nMG/nDu # nMG/nDu #
+	b42 = (nMG*nLCF + nMGii*nLCFii)/(nLCF**2 + nLCFii**2) # nMG/nLCF #
+	b43 = (nMG*nMB + nMGii*nMBii)/(nMB**2 + nMBii**2) # nMG/nMB #
+
+	it1 =  -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(1+b41)-math.sinh(KapMB*(a-b))*(b43 + b31) ) #Good# Composantes complexe de F_00, considérant ni que réel 
+	it2 =  -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(b21 +b42) - math.sinh(KapMB*(a-b))*(b32 +b43*b21-a21*a43 ) ) #Good# Composantes complexe de F_00, considérant ni que réel
+	it3 =  math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(b31 + b43) - math.sinh(KapMB*(a-b))*(1+b41) ) #Good# Composantes complexe de F_00, considérant ni que réel
+	it4 =  math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(b32 +b43*b21-a21*a43 ) -math.sinh(KapMB*(a-b))*(b21 + b42)  )#good# Composantes complexe de F_00, considérant ni que réel
+	ajit1 = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b))*(math.cosh(KapMB*(a-b))*a41 -math.sinh(KapMB*(a-b))*(a43+a31) ) #Good # Ajouts aux composantes complexes si ni est complexe
+	ajit2 = -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a31+a43) +math.sinh(KapMB*(a-b))*a41  ) #Good # Ajouts aux composantes complexes si ni est complexe
+	ajit3 = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b))*(math.cosh(KapMB*(a-b))*(a21+a42) -math.sinh(KapMB*(a-b))*(a32+a43*b21+b43*a21) ) # Good # Ajouts aux composantes complexes si ni est complexe
+	ajit4 = -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a43*b21+b43*a21 +a32) +math.sinh(KapMB*(a-b))*(a21+a42) ) #Good # Ajouts aux composantes complexes si ni est complexe
+	It =  (it1+it2+it3+it4 +ajit1+ajit2+ajit3 +ajit4) #Compilation des éléments
+	rt1 = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b)) *(math.cosh(KapMB*(a-b))*(1+b41) -math.sinh(KapMB*(a-b))*(b43 + b31) ) #Good # Composantes réelles de F_00 considérant ni que réel
+	rt2 = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b)) *(math.cosh(KapMB*(a-b))*(b21 + b42)-math.sinh(KapMB*(a-b))*(b32 +b43*b21- a43*a21) ) #Good # Composantes réelles de F_00 considérant ni que réel
+	rt3 = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b)) *(math.cosh(KapMB*(a-b))*(b43 + b31) - math.sinh(KapMB*(a-b))*(1+b41) ) #Good # Composantes réelles de F_00 considérant ni que réel
+	rt4 = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b)) *(math.cosh(KapMB*(a-b))*(b32 + b43*b21- a43*a21) -math.sinh(KapMB*(a-b))*(b21 + b42) ) #Good # Composantes réelles de F_00 considérant ni que réel
+	ajrt1 = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a31+a43)+math.sinh(KapMB*(a-b))*a41 ) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	ajrt2 = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b))*((math.cosh(KapMB*(a-b))*(a41)-math.sinh(KapMB*(a-b))*(a43+a31) )) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	ajrt3 = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a43*b21+b43*a21+a32)+math.sinh(KapMB*(a-b))*(a21+a42)) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	ajrt4 = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b))*(math.cosh(KapMB*(a-b))*(a21+a42)-math.sinh(KapMB*(a-b))*(a43*b21+b43*a21+a32)) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	Rt = (rt1+rt2+rt3+rt4 +ajrt1+ajrt2+ajrt3+ajrt4) #Compilation des éléments
+	###
+	it1b =  -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(1+b41) -math.sinh(KapMB*(a-b2))*(b43 + b31) ) #Good #Idem aux cas précédents, mais pour b* (court) 
+	it2b =  -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(b21 +b42) - math.sinh(KapMB*(a-b2))*(b32 +b43*b21-a21*a43 ) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	it3b =  math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(b31 + b43) - math.sinh(KapMB*(a-b2))*(1+b41) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	it4b =  math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(b32 +b43*b21-a21*a43 ) -math.sinh(KapMB*(a-b2))*(b21 + b42)  )#good #Idem aux cas précédents, mais pour b* (court)
+	ajit1b = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2))*(math.cosh(KapMB*(a-b2))*a41 -math.sinh(KapMB*(a-b2))*(a43+a31) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajit2b = -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a31+a43) +math.sinh(KapMB*(a-b2))*a41  ) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajit3b = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2))*(math.cosh(KapMB*(a-b2))*(a21+a42) -math.sinh(KapMB*(a-b2))*(a32+a43*b21+b43*a21) ) # Good #Idem aux cas précédents, mais pour b* (court)
+	ajit4b = -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a43*b21+b43*a21 +a32) +math.sinh(KapMB*(a-b2))*(a21+a42) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	Itb =  (it1b+it2b+it3b+it4b +ajit1b+ajit2b+ajit3b +ajit4b) #Compilations des éléments
+	rt1b = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2)) *(math.cosh(KapMB*(a-b2))*(1+b41) -math.sinh(KapMB*(a-b2))*(b43 + b31) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	rt2b = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2)) *(math.cosh(KapMB*(a-b2))*(b21 + b42)-math.sinh(KapMB*(a-b2))*(b32 +b43*b21- a43*a21) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	rt3b = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2)) *(math.cosh(KapMB*(a-b2))*(b43 + b31) - math.sinh(KapMB*(a-b2))*(1+b41) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	rt4b = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2)) *(math.cosh(KapMB*(a-b2))*(b32 + b43*b21- a43*a21) -math.sinh(KapMB*(a-b2))*(b21 + b42) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt1b = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a31+a43)+math.sinh(KapMB*(a-b2))*a41 ) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt2b = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2))*((math.cosh(KapMB*(a-b2))*(a41)-math.sinh(KapMB*(a-b2))*(a43+a31) )) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt3b = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a43*b21+b43*a21+a32)+math.sinh(KapMB*(a-b2))*(a21+a42)) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt4b = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2))*(math.cosh(KapMB*(a-b2))*(a21+a42)-math.sinh(KapMB*(a-b2))*(a43*b21+b43*a21+a32)) #Good #Idem aux cas précédents, mais pour b* (court)
+	Rtb = (rt1b+rt2b+rt3b+rt4b  +ajrt1b+ajrt2b+ajrt3b+ajrt4b) #Compilations des éléments
+	###
+	itREE= -math.sin(KLCF*a)*(math.sinh(KapLCF*a)*(1+b21)+math.cosh(KapLCF*a)*(b21 +b32))    +math.cos(KLCF*a)*(math.cosh(KapLCF*a)*a31+math.sinh(KapLCF*a)*(a21+a32)) #Good #Partie réel pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière blanche
+	rtREE= math.cos(KLCF*a)*(math.cosh(KapLCF*a)*(1+b31) + math.sinh(KapLCF*a)*(b21 + b32))    +math.sin(KLCF*a) *(math.sinh(KapLCF*a)*a21 + math.cosh(KapLCF*a)*(a21+a32)) #Good  #Partie imaginaire pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière blanche
+	###
+	itREEG= -math.sin(KLCF*a)*(math.sinh(KapLCF*a)*(1+b21)+math.cosh(KapLCF*a)*(b21 +b322))    +math.cos(KLCF*a)*(math.cosh(KapLCF*a)*a311+math.sinh(KapLCF*a)*(a21+a322)) #Good #Partie réel pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière grise 
+	rtREEG= math.cos(KLCF*a)*(math.cosh(KapLCF*a)*(1+b311) + math.sinh(KapLCF*a)*(b21 + b322))     +math.sin(KLCF*a) *(math.sinh(KapLCF*a)*a21 + math.cosh(KapLCF*a)*(a21+a322)) #Good #Partie imaginaire pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière grise
+	###
+
+	alphaBLdu = np.exp(-nDuii*2*np.pi/(2.998E8/(w))*(0.2*a)) # *np.exp(-nLCFii*2*np.pi/(2.998E8/(w))*(a)) 
+	alphaBLlcf = np.exp(-nLCFii*2*np.pi/(2.998E8/(w))*(a)) 
+	alphaBLmb = np.exp(-nMBii*2*np.pi/(2.998E8/(w))*(b-a)) 
+	alphaBL = np.exp(-nMBii*2*np.pi/(2.998E8/(w))*(b2-a)) 
+	T3cMGdu = 4*((b41))/(Rt**2 + It**2) # *alphaBLdu*alphaBLlcf*alphaBLmb  #4 couches chemin long
+	T3cMGlcf =4*((b41))/(Rtb**2 + Itb**2)# *alphaBLdu*alphaBLlcf*alphaBL #4 couches chemin court 
+	T3cMGmb = 4*((b31))/( rtREE**2 + itREE**2) *alphaBLdu*alphaBLlcf  # 3 couches matière blanche 
+	T3cMGmb2 =4*((b311))/(rtREEG**2 + itREEG**2 ) *alphaBLdu*alphaBLlcf # 3 couches matière grise  
+	T3cMGmb3 = alphaBLdu*4*(nLCF*nDu+nLCFii*nDuii)/(( (nDuii**2 +nDu**2 +nLCF*nDu+nLCFii*nDuii)**2 +(nLCFii*nDu-nLCF*nDuii)**2)/(nDuii**2 +nDu**2) )#2 couches Dura -> CSF
+
+	T4cMGP = (1-((nDu-nLCF)**2 + (nDuii - nLCFii)**2)/((nDu+nLCF)**2 + (nDuii + nLCFii)**2))*alphaBLdu  # *T3cMGdu #Du a CSF
+	T4cMGP2 =  (1-( (nLCF-nMG)**2 + (nLCFii - nMGii)**2)/( (nLCF+nMG)**2 + (nLCFii + nMGii)**2))*T4cMGP*alphaBLlcf # (nLCF + nLCFii -nMG - nMGii)**2/(nLCF +nLCFii + nMG+nMGii)**2  #*   # * T3cMGlcf*T4cMGP # 3 c MG
+	T4cMG =  (1- ( (nLCF-nMB)**2 + (nLCFii - nMBii)**2)/( (nLCF+nMB)**2 + (nLCFii + nMBii)**2) )*T4cMGP*alphaBLlcf  # (nLCF + nLCFii -nMB - nMBii)**2/(nLCF +nLCFii + nMB+nMBii)**2  #* (nDu + nDuii -nLCF - nLCFii)**2/(nDu +nDuii + nLCF+nLCFii)**2  # * T3cMGlcf*T4cMGP # 3 c MB
+	T3cMB =  (1-( (nMB-nMG)**2 + (nMBii - nMGii)**2)/( (nMB+nMG)**2 + (nMBii + nMGii)**2))*T4cMG*T4cMGP*alphaBLmb   #(nMB + nMBii -nMG - nMGii)**2/(nMB +nMBii + nMG+nMGii)**2  #* (nDu + nDuii -nLCF - nLCFii)**2/(nDu +nDuii + nLCF+nLCFii)**2 *(nLCF + nLCFii -nMB - nMBii)**2/(nLCF +nLCFii + nMB+nMBii)**2  # 4 couches L
+	T2cCSF = (1-( (nMB-nMG)**2 + (nMBii - nMGii)**2)/( (nMB+nMG)**2 + (nMBii + nMGii)**2))*T4cMG*T4cMGP*alphaBL # 4 couches C
+
+	#T4cMGP = alphaBLdu# (1-((nDu-nLCF)**2 + (nDuii - nLCFii)**2)/((nDu+nLCF)**2 + (nDuii + nLCFii)**2))*alphaBLdu  # *T3cMGdu #Du a CSF
+	#T4cMGP2 =  alphaBLlcf # (1-( (nLCF-nMG)**2 + (nLCFii - nMGii)**2)/( (nLCF+nMG)**2 + (nLCFii + nMGii)**2))*T4cMGP*alphaBLlcf # (nLCF + nLCFii -nMG - nMGii)**2/(nLCF +nLCFii + nMG+nMGii)**2  #*   # * T3cMGlcf*T4cMGP # 3 c MG
+	#T4cMG =  alphaBLmb #  (1- ( (nLCF-nMB)**2 + (nLCFii - nMBii)**2)/( (nLCF+nMB)**2 + (nLCFii + nMBii)**2) )*T4cMGP*alphaBLlcf  # (nLCF + nLCFii -nMB - nMBii)**2/(nLCF +nLCFii + nMB+nMBii)**2  #* (nDu + nDuii -nLCF - nLCFii)**2/(nDu +nDuii + nLCF+nLCFii)**2  # * T3cMGlcf*T4cMGP # 3 c MB
+	#T3cMB =  alphaBL #(1-( (nMB-nMG)**2 + (nMBii - nMGii)**2)/( (nMB+nMG)**2 + (nMBii + nMGii)**2))*T4cMG*T4cMGP*alphaBLmb   #(nMB + nMBii -nMG - nMGii)**2/(nMB +nMBii + nMG+nMGii)**2  #* (nDu + nDuii -nLCF - nLCFii)**2/(nDu +nDuii + nLCF+nLCFii)**2 *(nLCF + nLCFii -nMB - nMBii)**2/(nLCF +nLCFii + nMB+nMBii)**2  # 4 couches L
+	#T2cCSF = 0# (1-( (nMB-nMG)**2 + (nMBii - nMGii)**2)/( (nMB+nMG)**2 + (nMBii + nMGii)**2))*T4cMG*T4cMGP*alphaBL # 4 couches C
+
+	#T4cMGP = 1-((nDu-nLCF)**2 + (nDuii - nLCFii)**2)/((nDu+nLCF)**2 + (nDuii + nLCFii)**2) # *T3cMGdu #Du a CSF
+	#T4cMGP2 =  1-( (nLCF-nMG)**2 + (nLCFii - nMGii)**2)/( (nLCF+nMG)**2 + (nLCFii + nMGii)**2) # (nLCF + nLCFii -nMG - nMGii)**2/(nLCF +nLCFii + nMG+nMGii)**2  #*   # * T3cMGlcf*T4cMGP # 3 c MG
+	#T4cMG =1- ( (nLCF-nMB)**2 + (nLCFii - nMBii)**2)/( (nLCF+nMB)**2 + (nLCFii + nMBii)**2) # (nLCF + nLCFii -nMB - nMBii)**2/(nLCF +nLCFii + nMB+nMBii)**2  #* (nDu + nDuii -nLCF - nLCFii)**2/(nDu +nDuii + nLCF+nLCFii)**2  # * T3cMGlcf*T4cMGP # 3 c MB
+	#T3cMB =  (1-( (nMB-nMG)**2 + (nMBii - nMGii)**2)/( (nMB+nMG)**2 + (nMBii + nMGii)**2))  #(nMB + nMBii -nMG - nMGii)**2/(nMB +nMBii + nMG+nMGii)**2  #* (nDu + nDuii -nLCF - nLCFii)**2/(nDu +nDuii + nLCF+nLCFii)**2 *(nLCF + nLCFii -nMB - nMBii)**2/(nLCF +nLCFii + nMB+nMBii)**2  # 4 couches L
+	#T2cCSF = T4cMGP*T4cMG *alphaBLdu*alphaBLlcf  # 4 couches C
+	#T2cCSF = 1- (nDu + nDuii -nLCF - nLCFii)**2/(nDu +nDuii + nLCF+nLCFii)**2 *(nLCF + nLCFii -nMB - nMBii)**2/(nLCF +nLCFii + nMB+nMBii)**2  * (nMB + nMBii -nMG - nMGii)**2/(nMB +nMBii + nMG+nMGii)**2 # 4 couches C
+	
+	T4cMg.append(T4cMG*100)
+	T4cMgP.append(T4cMGP*100)
+	T4cMgP2.append(T4cMGP2*100)
+	T3cMb.append(T3cMB*100)
+	T2cCSf.append(T2cCSF*100)
+	T3cMg.append(T3cMGdu*100) #4 couches chemin long
+	T3cMg2.append(alphaBLmb*100) #4 couches chemin court 
+	T3cMg3.append(T3cMGmb3*100) # dura -> CSF
+	
+
+font=31
+fig, (ax) = plt.subplots(ncols=1, nrows=1,sharex = True,figsize=(13,8)) 
+plt.ylim(0,100)
+plt.xlim(1E1,1E11)
+#plt.ylim(-0.5,45) #1.01
+#plt.ylim(-0.01,0.25) #1.01
+plt.xscale('log')
+#plt.yscale('log')
+
+#plt.axvline(x=3E3,ymin= 0.01, ymax=0.0332/0.296, linewidth= 2, linestyle ='dashed',color='grey')
+plt.axvline(x=1.66666666E3,ymin= 0.01, ymax=14.31/45, linewidth= 2, linestyle ='dashed',color='grey')
+plt.hlines(y=0,xmin=0,xmax=1E15,linewidth=2,color='grey',linestyle='dashed')
+
+#plt.plot(omega2,T4cMgP, marker='x', markersize=10, linestyle='dashed', linewidth=2,color='#882255', label='Du->CSF') #MG 4 couches court 'black' #994F00 brun
+#plt.plot(omega2,T3cMb,marker='s', markersize=7, linestyle='-',linewidth=2, color='black',label= 'MB -> MG')# #MG 3 couches #tab:pink '#994F00' Brun #40B0A6 Turquoise
+#plt.plot(omega2,T4cMgP2, marker='>', markersize=7, linestyle='dashed', linewidth=2,color='#1083D4', label='CSF->MG') #bleu #1A85FF #88CCEE #DDCC77 #CC6677
+#plt.plot(omega2,T4cMg, marker='o', markersize=7, linestyle='-',fillstyle='none', linewidth=2,color='#04B13E', label='CSF->MB') #MG 4 couches polarisation tab:green #117733
+#plt.plot(omega2,T2cCSf,marker='>', markersize=5, linestyle='-',linewidth=2,color='tab:blue', label='4 c court')#LCF
+
+plt.plot(omega2,T4cMgP, marker='x', markersize=10, linestyle='dashed', linewidth=2,color='#882255', label='Dura') #MG 4 couches court 'black' #994F00 brun
+plt.plot(omega2,T3cMb,marker='s', markersize=7, linestyle='-',linewidth=2, color='black',label= 'MB C')# #MG 3 couches #tab:pink '#994F00' Brun #40B0A6 Turquoise
+plt.plot(omega2,T4cMgP2, marker='>', markersize=7, linestyle='dashed', linewidth=2,color='#1083D4', label='CSF') #bleu #1A85FF #88CCEE #DDCC77 #CC6677
+plt.plot(omega2,T4cMg, marker='o', markersize=7, linestyle='-',fillstyle='none', linewidth=2,color='#04B13E', label='MB L') #MG 4 couches polarisation tab:green #117733
+plt.plot(omega2,T2cCSf,marker='>', markersize=5, linestyle='-',linewidth=2,color='tab:blue', label='4 c court')#LCF
+
+#plt.plot(omega2,T3cMg, marker='o', markersize=7,  linestyle='-',linewidth=2, label='4 couches chemin long')#MG 4 couches #DC3220 rouge 
+#plt.plot(omega2,T3cMg2, marker='o', markersize=7,  linestyle='-',linewidth=2, label='Absorbtion')#MG 4 couches #DC3220 rouge 
+#plt.plot(omega2,T3cMg3, marker='o', markersize=7,  linestyle='-',linewidth=2, label='dura -> CSF')#MG 4 couches #DC3220 rouge 
+
+plt.xlabel(r'Frequency (Hz)',fontsize=font) # axe x température
+plt.ylabel(r'Transmission (%)',fontsize=font) #axe y delta s
+
+ax.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax.tick_params(which='minor',width=2, length=5)
+
+plt.tick_params(axis='both', which='major',width=3, length=10, labelsize=font)
+plt.xticks([1E1,1E3,1E5,1E7,1E9,1E11])
+
+topax= ax.secondary_xaxis('top')
+topax.set_xscale('log')
+
+topax.set_ticks([1E1,1E3,1E5,1E7,1E9,1E11,1E13],[r'10$^{5}$',r'10$^{3}$',r'10$^{1}$',r'10$^{-1}$',r'10$^{-3}$',r'10$^{-5}$',r'10$^{-7}$'])
+topax.set_xlabel(r'Period ($\mu$s)',labelpad=13, fontsize=font)
+topax.tick_params(width=3, length=10)
+topax.tick_params(axis='both', which='major', labelsize=font)
+#topax.xaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+topax.tick_params(which='minor',width=2, length=5)
+
+plt.legend( loc='best',  frameon = True,fontsize = font-10)
+plt.tight_layout()
+#plt.savefig('testdattrans.pdf',bbox_inches='tight')
+plt.show()
