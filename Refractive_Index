@@ -1,0 +1,278 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jul  8 12:42:58 2020
+
+@author: Laurier
+"""
+import numpy as np
+from matplotlib import pyplot as plt
+from scipy.interpolate import interp1d
+import pyqtgraph as pg
+from scipy.optimize import curve_fit
+
+#Parametres du modele de Cole-Cole modifie. Voir Gabriel (article)
+alphaMB= [0.1,0.1,0.3,0.02]#
+DpermMB=[32,100,4E4,3.5E7] #
+tauMB = [7.96E-12,7.96E-9,53.05E-6,7.958E-3] #
+sigmaMB = 0.02
+
+alphaMG= [0.1,0.15,0.22,0.00] # 
+DpermMG=[45,400,2E5,4.5E7] #
+tauMG = [7.96E-12,15.92E-9,106.1E-6,5.305E-3] #
+sigmaMG = 0.2
+
+alphaDu= [0.15,0.1,0.2,0] #
+perminfDu = 4
+DpermDu=[40,200,10000,1E6] #
+tauDu = [7.958E-12,7.958E-9,1.592E-4,1.592E-2] #
+sigmaDu = 0.02
+
+sigmaLCF = 1.7
+alphaLCF= [0.1,0,0,0]
+perminfLCF = 4
+DpermLCF=[65,40,0,0]
+tauLCF = [7.958E-12,1.592E-9,1.592E-4,1.592E-2]
+
+perminf = 4
+permvide = 8.8541878128E-12 #varepsilon_0 ou permitivite vide
+cc=2.98E8 #Vitesse lumiere dans le vide en m/s
+
+#Liste des différentes variables
+varepirMB=[]
+varepiiMB=[]
+difMB=[]
+varepirMG=[]
+varepiiMG=[]
+varepirDu=[]
+varepiiDu=[]
+varepirLCF=[]
+varepiiLCF=[]
+
+difMG=[]
+difDu=[]
+difLCF=[]
+TRMG= []
+TRMB= []
+TRML=[]
+TRMLB =[]
+TRMDu=[]
+
+NMB= []
+NMG=[]
+NLCF=[]
+NDU=[]
+NMBii= []
+NMGii=[]
+NLCFii=[]
+NDUii=[]
+l=0
+omega2=np.logspace(1,16,num=90, endpoint=True, base=10.0, dtype=None, axis=0)
+for w in omega2:
+	#print('Frequence:',w)
+	varepMG = 0
+	varepMB = 0
+	varepDu =0
+	varepLCF=0
+	kG=0
+	kB=0
+	for i in range(len(alphaMG)):
+		varepMG +=  DpermMG[i]/(1+(1j*2*np.pi*w*tauMG[i])**(1-alphaMG[i]))
+		varepDu +=  DpermDu[i]/(1+(1j*2*np.pi*w*tauDu[i])**(1-alphaDu[i]))
+		varepMB +=  DpermMB[i]/(1+(1j*2*np.pi*w*tauMB[i])**(1-alphaMB[i]))
+		varepLCF += DpermLCF[i]/(1+(1j*2*np.pi*w*tauLCF[i])**(1-alphaLCF[i]))
+	varepMB2 = perminf+ varepMB + sigmaMB/(1j*(2*np.pi*w*permvide))
+	varepirMB.append(varepMB2.real)
+	varepiiMB.append(varepMB2.imag)
+	varepMG2 = perminf+ varepMG + sigmaMG/(1j*(2*np.pi*w*permvide))
+	varepirMG.append(varepMG2.real)
+	varepiiMG.append(varepMG2.imag)
+	varepDu2 = perminfDu+ varepDu + sigmaDu/(1j*(2*np.pi*w*permvide))
+	varepirDu.append(varepDu2.real)
+	varepiiDu.append(varepDu2.imag)
+	varepLCF2 = perminfLCF+ varepLCF + sigmaLCF/(1j*(2*np.pi*w*permvide))
+	varepirLCF.append(varepLCF2.real)
+	varepiiLCF.append(varepLCF2.imag)
+#Exponentielle pour corriger les indices de diffraction	
+	alphaW= 0.5 #
+	alphaG= 0.43475#
+	alphaL= 0.42#
+	alphaD= 0.55#
+#Calcul des indices de diffraction	
+	MGA=((varepMG2.imag))
+	nMG=(np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) +0.5*varepMG2.real))**(alphaG) #
+	nMGii=   (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) -0.5*varepMG2.real))**2 #
+	NMG.append(nMG)
+	NMGii.append(nMGii)
+	MBA= (varepMB2.imag)
+	#print(type(MBA))
+	nMB= (np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))**(alphaW)#
+	nMBii= 2.5*(np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) -varepMB2.real)))**2#
+	NMB.append(nMB)
+	NMBii.append(nMBii)
+	DUA=(varepDu2.imag)
+	nDu= (np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) +0.5*varepDu2.real ))**(alphaD)  #
+	nDuii= (np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) -0.5*varepDu2.real ))*np.exp(-w/0.63E14) #
+	NDU.append(nDu)
+	NDUii.append(nDuii)
+	LCFA=(varepLCF2.imag)
+	nLCF= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) +0.5*varepLCF2.real))**(alphaL) #
+	nLCFii= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) -0.5*varepLCF2.real))  #
+	NLCF.append(nLCF)
+	NLCFii.append(nLCFii)
+	l+=1
+#Interpolation pour pouvoir calculer les valeurs des n' et n" afin de les comparer avec les resultats de la litterature
+int_LCF = interp1d(omega2, NLCF, 'linear', fill_value='extrapolate')
+int_LCFi = interp1d(omega2, NLCFii, 'linear', fill_value='extrapolate')
+int_Du = interp1d(omega2, NDU, 'linear', fill_value='extrapolate')
+int_Dui = interp1d(omega2, NDUii, 'linear', fill_value='extrapolate')
+int_MB = interp1d(omega2, NMB, 'linear', fill_value='extrapolate')
+int_MBi = interp1d(omega2, NMBii, 'linear', fill_value='extrapolate')
+int_MG = interp1d(omega2, NMG, 'linear', fill_value='extrapolate')
+int_MGi = interp1d(omega2, NMGii, 'linear', fill_value='extrapolate')#3.47E-6 970nm 3.1E14Hz
+
+#Tracer des graphiques
+font=31
+fig, (ax1,ax2,ax3,ax4) = plt.subplots(ncols=1, nrows=4,figsize=(13,22)) 
+#Axes de gauche, parties reelles
+ax1.set_xlim(1E1,1E11)
+ax2.set_xlim(1E1,1E11)
+ax3.set_xlim(1E1,1E11)
+ax4.set_xlim(1E1,1E11)
+#Axes de droite, parties complexe
+axa = ax1.twinx() 
+axb = ax2.twinx()
+axc = ax3.twinx() 
+axd = ax4.twinx() 
+
+ax1.set_yscale('log')
+ax1.set_xscale('log')
+axa.set_yscale('log')
+
+ax2.set_yscale('log')
+ax2.set_xscale('log')
+axb.set_yscale('log')
+ax3.set_yscale('log')
+ax3.set_xscale('log')
+axc.set_yscale('log')
+ax4.set_yscale('log')
+ax4.set_xscale('log')
+axd.set_yscale('log')
+ax1.set_xticks([1E1,1E3,1E5,1E7,1E9,1E11])
+ax2.set_xticks([1E1,1E3,1E5,1E7,1E9,1E11])
+ax3.set_xticks([1E1,1E3,1E5,1E7,1E9,1E11])
+ax4.set_xticks([1E1,1E3,1E5,1E7,1E9,1E11])
+
+#topax= ax1.secondary_xaxis('top')
+#topax.set_xscale('log')
+
+#topax.tick_params(width=3, length=10)
+#topax.tick_params(axis='both', which='major', labelsize=font)
+
+ax1.xaxis.set_tick_params(width=3, length=10)
+ax1.yaxis.set_tick_params(width=3, length=10)
+ax2.xaxis.set_tick_params(width=3, length=10)
+ax2.yaxis.set_tick_params(width=3, length=10)
+ax3.xaxis.set_tick_params(width=3, length=10)
+ax3.yaxis.set_tick_params(width=3, length=10)
+ax4.xaxis.set_tick_params(width=3, length=10)
+ax4.yaxis.set_tick_params(width=3, length=10)
+
+axa.xaxis.set_tick_params(width=3, length=10)
+axa.yaxis.set_tick_params(width=3, length=10)
+axb.xaxis.set_tick_params(width=3, length=10)
+axb.yaxis.set_tick_params(width=3, length=10)
+axc.xaxis.set_tick_params(width=3, length=10)
+axc.yaxis.set_tick_params(width=3, length=10)
+axd.xaxis.set_tick_params(width=3, length=10)
+axd.yaxis.set_tick_params(width=3, length=10)
+
+ax1.tick_params(axis='both', which='major', labelsize=font)
+ax2.tick_params(axis='both', which='major', labelsize=font)
+ax3.tick_params(axis='both', which='major', labelsize=font)
+ax4.tick_params(axis='both', which='major', labelsize=font)
+axa.tick_params(axis='both', which='major', labelsize=font)
+axb.tick_params(axis='both', which='major', labelsize=font)
+axc.tick_params(axis='both', which='major', labelsize=font)
+axd.tick_params(axis='both', which='major', labelsize=font)
+
+axa.set_ylim(5E-1,1E9) #Axes de droite
+axb.set_ylim(5E-1,1E9) 
+axc.set_ylim(5E-1,7E4)#7E9)
+axd.set_ylim(3E-1,1E4) 
+
+ax4.set_xlabel(r'Frequency (Hz)',fontsize=font) # axe x température
+ax2.set_ylabel(r"Real part of refractive index (n')",color='#1A85FF',labelpad=20,fontsize=font,y=-0.1) #axe y delta s
+axb.set_ylabel(r'Complex part of refractivde index (n") ',color='#DC3220',fontsize=font,rotation=270,y=-0.1,labelpad=40)
+ax1.plot(omega2,NMG,marker='o',markersize=10,fillstyle='none',linewidth=2,color='#1A85FF',linestyle='-',label=r'n$_{GM}$')
+axa.plot(omega2,NMGii,marker='>',markersize=10,linewidth=4,linestyle='-',color='#DC3220',label=r'n$_{GM}$')
+ax2.plot(omega2,NMB,marker='o',markersize=10,fillstyle='none',linewidth=2,color='#1A85FF',linestyle='-',label=r'n$_{WM}$')
+axb.plot(omega2,NMBii,marker='>',markersize=10,linewidth=4,linestyle='-',color='#DC3220',label=r'n$_{WM}$')
+ax3.plot(omega2,NLCF,marker='o',markersize=10,fillstyle='none',linewidth=2,linestyle='-',color='#1A85FF',label=r'n$_{LCF}$')
+axc.plot(omega2,NLCFii,marker='>',markersize=10,linewidth=4,linestyle='-',color='#DC3220',label=r'n$_{LCF}$')
+ax4.plot(omega2,NDU,marker='o',markersize=10,fillstyle='none',linewidth=2,linestyle='-',color='#1A85FF',label=r'n$_{Dura}$')
+axd.plot(omega2,NDUii,marker='>',markersize=10,linewidth=4,linestyle='-',color='#DC3220',label=r'n$_{Dura}$')
+axa.vlines(x= 8.30217568E8,ymin=1E-7,ymax=22.69,linewidth=2,linestyle='dashed',color='k')#'gray') #grey 1.08E9
+axb.vlines(x=5.99484250E8 ,ymin=2E-7,ymax=23.5,linewidth=2,linestyle='dashed',color='k')#'gray') #white 2.01E8
+axc.vlines(x=8.30217568E8 ,ymin=1E-4,ymax=5.25,linewidth=2,linestyle='dashed',color='k')#'gray') #CSF 2.915E11 34
+axd.vlines(x=3.274549E6 ,ymin=3E-11,ymax=5.6,linewidth=2,linestyle='dashed',color='k')#'gray') #Dura 3.12E8
+
+ax1.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax1.tick_params(which='minor',width=1, length=5)
+ax2.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax2.tick_params(which='minor',width=1, length=5)
+ax3.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax3.tick_params(which='minor',width=1, length=5)
+ax4.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax4.tick_params(which='minor',width=1, length=5)
+
+ax1.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+ax1.tick_params(which='minor',width=1, length=5)
+ax2.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+ax2.tick_params(which='minor',width=1, length=5)
+ax3.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+ax3.tick_params(which='minor',width=1, length=5)
+ax4.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+ax4.tick_params(which='minor',width=1, length=5)
+axa.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+axa.tick_params(which='minor',width=1, length=5)
+axb.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+axb.tick_params(which='minor',width=1, length=5)
+axc.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+axc.tick_params(which='minor',width=1, length=5)
+axd.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+axd.tick_params(which='minor',width=1, length=5)
+
+ax1.spines['left'].set_color('#1A85FF')
+ax1.tick_params(axis='y',which='both',  colors='#1A85FF') #D41159
+axa.spines['right'].set_color('#DC3220')
+axa.tick_params(axis='y',which='both',  colors='#DC3220')##D41159') 
+ax2.spines['left'].set_color('#1A85FF')
+ax2.tick_params(axis='y',which='both',  colors='#1A85FF') #D41159
+axb.spines['right'].set_color('#DC3220')
+axb.tick_params(axis='y',which='both',  colors='#DC3220')##D41159') 
+ax3.spines['left'].set_color('#1A85FF')
+ax3.tick_params(axis='y',which='both',  colors='#1A85FF') #D41159
+axc.spines['right'].set_color('#DC3220')
+axc.tick_params(axis='y',which='both',  colors='#DC3220')##D41159') 
+ax4.spines['left'].set_color('#1A85FF')
+ax4.tick_params(axis='y',which='both',  colors='#1A85FF') #D41159
+axd.spines['right'].set_color('#DC3220')
+axd.tick_params(axis='y',which='both',  colors='#DC3220')##D41159') 
+
+maxa = 0.07*1E9
+maxb = 0.07*1E9
+maxc = 0.2*7E4
+maxd = 0.25*1E4
+axa.annotate(text='(a)', xy=(1.0E10, maxa), fontsize= font) #8E3
+axb.annotate(text='(b)', xy=(1.0E10, maxb), fontsize= font) #8E3
+axc.annotate(text='(c)', xy=(1.0E10, maxc), fontsize= font) #2E3
+axd.annotate(text='(d)', xy=(1.0E10, maxd), fontsize= font) #7E2
+
+ax1.annotate(text='Grey Matter', xy=(1E3, 1.5), xytext=(1E3, 1.5),fontsize= font)
+ax2.annotate(text='White Matter', xy=(1E3, 1.5), xytext=(1E3, 1.5),fontsize= font)
+ax3.annotate(text='CSF', xy=(1E3, 1.5), xytext=(1E3,1.5),fontsize= font)
+ax4.annotate(text='Dura', xy=(1E3, 1.5), xytext=(1E3, 1.5),fontsize= font)
+
+plt.tight_layout()
+#plt.savefig('IndiceDiffraction.pdf',bbox_inches='tight')
+plt.show()
