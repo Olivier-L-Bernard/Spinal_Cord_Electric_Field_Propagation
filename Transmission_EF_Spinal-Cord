@@ -1,0 +1,301 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jul  8 12:42:58 2020
+
+@author: Laurier
+"""
+import numpy as np
+from matplotlib import pyplot as plt, ticker as mticker
+from scipy.interpolate import interp1d
+import pyqtgraph as pg
+from scipy.optimize import curve_fit
+import math
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+from matplotlib.legend_handler import HandlerTuple
+from matplotlib.lines import Line2D 
+
+alphaMB= [0.1,0.1,0.3,0.02]# Paramètre Gabriel et al 1996 (Dielectric properties of Biological tissues III) et (Compilation Dielectric Properties Body Tissues Rf And Microwave Frequencies)
+DpermMB=[32,100,4E4,3.5E7] #
+tauMB = [7.96E-12,7.96E-9,53.05E-6,7.958E-3] #
+sigmaMB = 0.02
+
+alphaMG= [0.1,0.15,0.22,0.00] # Paramètre Gabriel et al 1996 (Dielectric properties of Biological tissues III) et (Compilation Dielectric Properties Body Tissues Rf And Microwave Frequencies)
+DpermMG=[45,400,2E5,4.5E7]
+tauMG = [7.96E-12,15.92E-9,106.1E-6,5.305E-3] 
+sigmaMG = 0.02
+
+alphaDu= [0.15,0.1,0.2,0] # Paramètre Gabriel et al 1996 (Dielectric properties of Biological tissues III) et (Compilation Dielectric Properties Body Tissues Rf And Microwave Frequencies)
+perminfDu = 4
+DpermDu=[40,200,10000,1E6] 
+tauDu = [7.958E-12,7.958E-9,1.592E-4,1.592E-2]
+sigmaDu = 0.02
+
+sigmaLCF = 1.7 # Paramètre C. Gabriel et al 1996 (Compilation Dielectric Properties Body Tissues Rf And Microwave Frequencies)
+alphaLCF= [0.1,0,0,0]
+perminfLCF = 4
+DpermLCF=[65,40,0,0]
+tauLCF = [7.958E-12,1.592E-9,1.592E-4,1.592E-2]
+
+perminf = 4
+permvide = 8.8541878128E-12 #Constante de la nature
+
+a= 2.78E-3#2.38E-3#0.693E-3 # en m Dura->mb ou mg
+b= 7.26444E-3 # <- L4; L5->$5.2E-3#2.1558E-3 # en m CSF->MB->MG Long
+b2= 4.00519E-3# <- L4; L5->$3.2E-3#0.7826E-3 #en m CSF->MB->MG Court
+
+T4cMg = [] #Listes des taux de transmissions
+T4cMg1 = []
+T4cMg2 = []
+T4cMg3 = []
+T4cMgP = []
+T4cMgP2 = []
+T3cMb = []
+T3cMb2 = []
+T3cMg = []
+T2cCSf = []
+pp=[]
+omega2=np.logspace(1,12,num=95, endpoint=True, base=10.0, dtype=None, axis=0) #Range en fréquence (Hz)
+for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
+				 #Autres références pour comparer: Kordic 2023 (Dielectric Spectroscopy Shows...) [WM, GM]; Matkovic 2022 (Complex Permittivity of Ex-Vivo...) [GM, WM]; 
+				 #								   Peynman 2009 (Variation of the Dielectric...)- Conductivité meh; Nowak 2011 (Optimizing a Rodent Model...); Chen 2021 (An Amplitude‑Based Characteristic ) [Dura, CSF];
+				 # 								   Sollehudin2014 (Characterization_of_Human...)
+	varepMG = 0
+	varepMB = 0
+	varepDu = 0
+	varepLCF= 0
+	for i in range(len(alphaMG)):
+		varepMG +=  DpermMG[i]/(1+(1j*2*np.pi*w*tauMG[i])**(1-alphaMG[i]))  #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
+		varepDu +=  DpermDu[i]/(1+(1j*2*np.pi*w*tauDu[i])**(1-alphaDu[i]))  #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
+		varepMB +=  DpermMB[i]/(1+(1j*2*np.pi*w*tauMB[i])**(1-alphaMB[i]))  #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
+		varepLCF += DpermLCF[i]/(1+(1j*2*np.pi*w*tauLCF[i])**(1-alphaLCF[i]))  #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
+	varepMB2 = perminf+ varepMB  + sigmaMG/(1j*(w*2*np.pi*permvide)) #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
+	varepMG2 = perminf+ varepMG  + sigmaDu/(1j*(w*2*np.pi*permvide)) #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996 
+	varepDu2 = perminfDu+ varepDu  + sigmaMB/(1j*(w*2*np.pi*permvide)) #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
+	varepLCF2 = perminfLCF+ varepLCF  + sigmaLCF/(1j*(w*2*np.pi*permvide)) #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
+
+	lumiere = 2.998E8 #m/s
+	alphaW= 0.5 # Paramètre ajustement partie réel de n ; Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
+	alphaG= 0.43475 # Paramètre ajustement partie réel de n ; Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
+	alphaL= 0.42 # Paramètre ajustement partie réel de n ; Penfold 1929 - CSF (refractive index...); Khan 2021
+	alphaD= 0.55 # Paramètre ajustement partie réel de n ; Nagel 2018 et Genina 2005
+	
+	MBA= (varepMB2.imag)
+	nMB= (np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))**(alphaW)   # Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
+	nMBii= 2.5*(np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) -varepMB2.real)))**2   # Gebhart 2006 ; Yaroslavsky2002 (Optical properties of selected native...)
+	MGA=abs((varepMG2.imag))
+	nMG= (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) +0.5*varepMG2.real))**(alphaG) # Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
+	nMGii=   (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) -0.5*varepMG2.real))**(2)   # Gebhart 2006  ; Yaroslavsky2002 (Optical properties of selected native...)
+	LCFA= abs(varepLCF2.imag)
+	nLCF= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) +0.5*varepLCF2.real))**(alphaL)#  Penfold 1929 - CSF (refractive index...); Khan 2021
+	nLCFii= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) -0.5*varepLCF2.real)) #  Wang 2020 (Terahertz spectroscopic diagnosis of early...)
+	DUA= abs(varepDu2.imag)
+	nDu= (np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) +0.5*varepDu2.real ))**(alphaD)  # Nagel 2018 et Genina 2005
+	nDuii=(np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) -0.5*varepDu2.real ))*np.exp(-2*np.pi*w/0.63E14) # Shappey 2022 (Optical properties of human...):Genina2005 (optical clearing...); Filatova2017 (Optical properties...)  comportement exponentielle
+	
+	KDu =   2*np.pi*w*nDu/lumiere # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
+	KapDu =   2*np.pi*w*nDuii/lumiere # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
+	KLCF =   2*np.pi*w*nLCF/lumiere # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
+	KapLCF=      2*np.pi*w*nLCFii/lumiere # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
+	KMB =   2*np.pi*w*nMB/lumiere #k3 # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
+	KapMB =     2*np.pi*w*nMBii/lumiere #  Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
+	KMG =   2*np.pi*w*nMG/lumiere #k3 # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
+	KapMG =    2*np.pi*w*nMGii/lumiere #  Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
+
+	a21 = (nLCFii*nDu - nLCF*nDuii)/(nDu**2 + nDuii**2) #nLCF/nDu ### Ici, les aXX sont pour les composantes complexes des ration ni/nj et bXX les partie réelles
+	a31 = (nMBii*nDu - nMB*nDuii)/(nDu**2 + nDuii**2) #nMB/nDu ### Si n est complexe, on a n_i= (a +ib) & n_j=(c+id), donc ni/nj = (a+ib)/(c+id) = (a +ib)/(c+id) * (c - id)/(c -id) = ac + bd +i(ad- bc) /(c^2 + d^2)
+	a311 = (nMGii*nDu - nMG*nDuii)/(nDu**2 + nDuii**2) # nMG/nDu #
+	a32 = (nMBii*nLCF - nMB*nLCFii)/(nLCF**2 + nLCFii**2) #nMB/nLCF #
+	a322 = (nMGii*nLCF - nMG*nLCFii)/(nLCF**2 + nLCFii**2) # nMG/nLCF #
+	a41 = (nMGii*nDu - nMG*nDuii)/(nDu**2 + nDuii**2) # nMG/nDu #
+	a42 = (nMGii*nLCF - nMG*nLCFii)/(nLCF**2 + nLCFii**2) #nMG/nLCF #
+	a43 = (nMGii*nMB - nMG*nMBii)/(nMB**2 + nMBii**2) # nMG/nMB #  
+	b21 = (nLCF*nDu + nLCFii*nDuii)/(nDu**2 + nDuii**2) # nLCF/nDu #
+	b31 = (nMB*nDu + nMBii*nDuii)/(nDu**2 + nDuii**2) # nMB/nDu #
+	b311 = (nMG*nDu + nMGii*nDuii)/(nDu**2 + nDuii**2) # nMG/nDu #
+	b32 = (nMB*nLCF + nMBii*nLCFii)/(nLCF**2 + nLCFii**2) # nMB/nLCF #
+	b322 = (nMG*nLCF + nMGii*nLCFii)/(nLCF**2 + nLCFii**2) # nMG/nLCF #
+	b41 = (nMG*nDu + nMGii*nDuii)/(nDu**2 + nDuii**2) # nMG/nDu #
+	b41s =  nMG/nDu # nMG/nDu #
+	b42 = (nMG*nLCF + nMGii*nLCFii)/(nLCF**2 + nLCFii**2) # nMG/nLCF #
+	b43 = (nMG*nMB + nMGii*nMBii)/(nMB**2 + nMBii**2) # nMG/nMB #
+
+	rt1 = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b)) *(math.cosh(KapMB*(a-b))*(1+b41) -math.sinh(KapMB*(a-b))*(b43 + b31) ) #Good # Composantes réelles de F_00 considérant ni que réel
+	rt2 = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b)) *(math.cosh(KapMB*(a-b))*(b21 + b42)-math.sinh(KapMB*(a-b))*(b32 +b43*b21- a43*a21) ) #Good # Composantes réelles de F_00 considérant ni que réel
+	rt3 = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b)) *(math.cosh(KapMB*(a-b))*(b43 + b31) - math.sinh(KapMB*(a-b))*(1+b41) ) #Good # Composantes réelles de F_00 considérant ni que réel
+	rt4 = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b)) *(math.cosh(KapMB*(a-b))*(b32 + b43*b21- a43*a21) -math.sinh(KapMB*(a-b))*(b21 + b42) ) #Good # Composantes réelles de F_00 considérant ni que réel
+	ajrt1 = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a31+a43)+math.sinh(KapMB*(a-b))*a41 ) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	ajrt2 = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b))*((math.cosh(KapMB*(a-b))*(a41)-math.sinh(KapMB*(a-b))*(a43+a31) )) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	ajrt3 = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a43*b21+b43*a21+a32)+math.sinh(KapMB*(a-b))*(a21+a42)) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	ajrt4 = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b))*(math.cosh(KapMB*(a-b))*(a21)-math.sinh(KapMB*(a-b))*(a43*b21+b43*a21+a32)) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	Rt = (rt1+rt2+rt3+rt4 +ajrt1+ajrt2+ajrt3+ajrt4) #Compilation des éléments
+	it1 =  -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(1+b41)-math.sinh(KapMB*(a-b))*(b43 + b31) ) #Good# Composantes complexe de F_00, considérant ni que réel 
+	it2 =  -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(b21 +b42) - math.sinh(KapMB*(a-b))*(b32 +b43*b21-a21*a43 ) ) #Good# Composantes complexe de F_00, considérant ni que réel
+	it3 =  math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(b31 + b43) - math.sinh(KapMB*(a-b))*(1+b41) ) #Good# Composantes complexe de F_00, considérant ni que réel
+	it4 =  math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(b32 +b43*b21-a21*a43 ) -math.sinh(KapMB*(a-b))*(b21 + b42)  )#good# Composantes complexe de F_00, considérant ni que réel
+	ajit1 = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b))*(math.cosh(KapMB*(a-b))*a41 -math.sinh(KapMB*(a-b))*(a43+a31) ) #Good # Ajouts aux composantes complexes si ni est complexe
+	ajit2 = -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a31+a43) +math.sinh(KapMB*(a-b))*a41  ) #Good # Ajouts aux composantes complexes si ni est complexe
+	ajit3 = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b))*(math.cosh(KapMB*(a-b))*(a21+a42) -math.sinh(KapMB*(a-b))*(a32+a43*b21+b43*a21) ) # Good # Ajouts aux composantes complexes si ni est complexe
+	ajit4 = -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a43*b21+b43*a21 +a32) +math.sinh(KapMB*(a-b))*(a21+a42) ) #Good # Ajouts aux composantes complexes si ni est complexe
+	It =  (it1+it2+it3+it4 +ajit1+ajit2+ajit3 +ajit4) #Compilation des éléments
+	###
+	rt1b = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2)) *(math.cosh(KapMB*(a-b2))*(1+b41) -math.sinh(KapMB*(a-b2))*(b43 + b31) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	rt2b = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2)) *(math.cosh(KapMB*(a-b2))*(b21 + b42)-math.sinh(KapMB*(a-b2))*(b32 +b43*b21- a43*a21) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	rt3b = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2)) *(math.cosh(KapMB*(a-b2))*(b43 + b31) - math.sinh(KapMB*(a-b2))*(1+b41) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	rt4b = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2)) *(math.cosh(KapMB*(a-b2))*(b32 + b43*b21- a43*a21) -math.sinh(KapMB*(a-b2))*(b21 + b42) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt1b = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a31+a43)+math.sinh(KapMB*(a-b2))*a41 ) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt2b = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2))*((math.cosh(KapMB*(a-b2))*(a41)-math.sinh(KapMB*(a-b2))*(a43+a31) )) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt3b = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a43*b21+b43*a21+a32)+math.sinh(KapMB*(a-b2))*(a21+a42)) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt4b = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2))*(math.cosh(KapMB*(a-b2))*(a21)-math.sinh(KapMB*(a-b2))*(a43*b21+b43*a21+a32)) #Good #Idem aux cas précédents, mais pour b* (court)
+	Rtb = (rt1b+rt2b+rt3b+rt4b  +ajrt1b+ajrt2b+ajrt3b+ajrt4b) #Compilations des éléments
+	it1b =  -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(1+b41) -math.sinh(KapMB*(a-b2))*(b43 + b31) ) #Good #Idem aux cas précédents, mais pour b* (court) 
+	it2b =  -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(b21 +b42) - math.sinh(KapMB*(a-b2))*(b32 +b43*b21-a21*a43 ) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	it3b =  math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(b31 + b43) - math.sinh(KapMB*(a-b2))*(1+b41) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	it4b =  math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(b32 +b43*b21-a21*a43 ) -math.sinh(KapMB*(a-b2))*(b21 + b42)  )#good #Idem aux cas précédents, mais pour b* (court)
+	ajit1b = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2))*(math.cosh(KapMB*(a-b2))*a41 -math.sinh(KapMB*(a-b2))*(a43+a31) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajit2b = -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a31+a43) +math.sinh(KapMB*(a-b2))*a41  ) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajit3b = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2))*(math.cosh(KapMB*(a-b2))*(a21+a42) -math.sinh(KapMB*(a-b2))*(a32+a43*b21+b43*a21) ) # Good #Idem aux cas précédents, mais pour b* (court)
+	ajit4b = -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a43*b21+b43*a21 +a32) +math.sinh(KapMB*(a-b2))*(a21+a42) ) #Good #Idem aux cas précédents, mais pour b* (court)
+	Itb =  (it1b+it2b+it3b+it4b +ajit1b+ajit2b+ajit3b +ajit4b) #Compilations des éléments
+	###
+	itREE= -math.sin(KLCF*a)*(math.sinh(KapLCF*a)*(1+b31)+math.cosh(KapLCF*a)*(b21 +b32))    +math.cos(KLCF*a)*(math.cosh(KapLCF*a)*a31+math.sinh(KapLCF*a)*(a21+a32)) #Good #Partie réel pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière blanche
+	rtREE= math.cos(KLCF*a)*(math.cosh(KapLCF*a)*(1+b31) + math.sinh(KapLCF*a)*(b21 + b32))    +math.sin(KLCF*a) *(math.sinh(KapLCF*a)*a31 + math.cosh(KapLCF*a)*(a21+a32)) #Good  #Partie imaginaire pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière blanche
+	###
+	itREEG= -math.sin(KLCF*a)*(math.sinh(KapLCF*a)*(1+b31)+math.cosh(KapLCF*a)*(b21 +b322))    +math.cos(KLCF*a)*(math.cosh(KapLCF*a)*a311+math.sinh(KapLCF*a)*(a21+a322)) #Good #Partie réel pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière grise 
+	rtREEG= math.cos(KLCF*a)*(math.cosh(KapLCF*a)*(1+b311) + math.sinh(KapLCF*a)*(b21 + b322))     +math.sin(KLCF*a) *(math.sinh(KapLCF*a)*a311 + math.cosh(KapLCF*a)*(a21+a322)) #Good #Partie imaginaire pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière grise
+	###
+
+	alphaBLlcf = np.exp(-(nLCFii*2*np.pi/(2.998E8/(w)))*(a))  # Loi de Beers pour les différents tissues qui va comme exp^[ -coefficient absorption * distance ]
+	alphaBLmb = np.exp(-(nMBii*2*np.pi/(2.998E8/(w)))*(b-a)) # Loi de Beers pour les différents tissues qui va comme exp^[ -coefficient absorption * distance ]
+	alphaBLmb2 = np.exp(-(nMBii*2*np.pi/(2.998E8/(w)))*(b2-a)) # Loi de Beers pour les différents tissues qui va comme exp^[ -coefficient absorption * distance ]
+	alphaBDu = np.exp(-(nDuii*2*np.pi/(2.998E8/(w)))*(0.2*a)) # Loi de Beers pour les différents tissues qui va comme exp^[ -coefficient absorption * distance ]
+
+	sigg =  1j*(0.23 - (2*np.pi*w*8.854E-12*(varepMG2 .imag  )))
+	sigw =	1j*(0.6 - (2*np.pi*w*8.854E-12*(varepMB2 .imag  )))
+	sigw2 =	1j*(0.083 - (2*np.pi*w*8.854E-12*(varepMB2 .imag  )))
+	sigd =	1j*(0.03 - (2*np.pi*w*8.854E-12*(varepDu2 .imag  )))
+	sigl =	1j*(1.65 - (2*np.pi*w*8.854E-12*(varepLCF2.imag   )))
+
+	print('Skin depth', np.sqrt(2/(8.8E-12*2*np.pi*2*abs(sigw2) )), np.sqrt(2/(8.8E-12*2*np.pi*2*abs(sigw) ) ))
+	if w < 0.3E6: #(varepDu2.real**2 + varepDu2.imag**2)/(varepMG2.real**2 + varepMG.imag**2) # (0.23/0.03) *abs(-1/ ((0.23/0.03) - (a*(1-0.23/1.65) +b2*(0.23/0.083))/0.03E-3) )**2 #
+		T4cMGP =  abs((0.44E-3) /( (sigg/sigd)*(0.44E-3) + 0.44E-3*((sigg/sigl)- (sigg/sigd ) )+ a*((sigg/sigw)- (sigg/ sigl ) )+ b*(1- (sigg/sigw)) ) )**2 
+	if w >= 0.3E6:
+		T4cMGP = 4*((b41))/(Rt**2 + It**2) #* alphaBDu*alphaBLlcf*alphaBLmb #4 couches chemin long #alphaBDu*alphaBLlcf*alphaBLmb*	
+	
+	if w < 0.3E6: #(0.23/0.03)*abs(0.3E-3/( (0.23 /0.03)*b + 0.3E-3*(1- 0.23/1.65) + b*(0.23/0.083) ) ) **2 #
+		T4cMGP2 =    abs((0.44E-3) /((sigg/sigd)*(0.44E-3) + 0.44E-3*((sigg/sigl)- (sigg/sigd ) )+ a*((sigg/sigw)- (sigg/ sigl ) )+ b2*(1- (sigg/sigw) ) ))**2 
+		#T4cMGP2 =  (0.23/0.03)*abs(0.3E-3/( (0.23 /0.03)*b + 0.3E-3*(1- 0.23/1.65) + b*(0.23/0.083) ) ) **2 #
+	if w >= 0.3E6:
+		T4cMGP2 =   4*((b41))/(Rtb**2 + Itb**2) #* alphaBDu*alphaBLlcf*alphaBLmb2 #4 couches chemin court #alphaBDu*alphaBLlcf*alphaBLmb2*
+
+	if w < 0.4E7:  # a**2 *(1/abs(a - a *(1-0.083/0.03) -(2.3E-3+0.44E-3)*(1- 0.083/1.65) )**2  )  #
+		T3cMB =     abs((0.44E-3) /((sigw/sigd)*(0.44E-3) + 0.44E-3*((sigw/sigl)- (sigw/sigd ) ) + (a)*(1- (sigw/ sigl ) ) ) )**2 
+	if w >= 0.4E7:	
+		T3cMB = 4*((b31))/( rtREE**2 + itREE**2) #* alphaBDu*alphaBLlcf # 3 couches matière blanche # 
+
+  if w < 0.15E7:
+		T3cMB2 = abs((0.44E-3) /((sigw2/sigd)*(0.44E-3) + 0.44E-3*((sigw2/sigl)- (sigw2/sigd ) ) + (a)*(1- (sigw2/ sigl ) ) ) )**2
+	if w >= 0.15E7:
+		T3cMB2 = 4*((b31))/( rtREE**2 + itREE**2) 
+	
+	if w < 0.5E6:
+		T3cMG = abs((0.44E-3) /((sigg/sigd)*(0.44E-3) + 0.44E-3*((sigg/sigl)- (sigg/sigd ) )+ (a)*(1- (sigg/ sigl ) ) ) )**2
+
+  if w >= 0.5E6:
+		T3cMG =  4*((b311))/(rtREEG**2 + itREEG**2 ) #* alphaBDu*alphaBLlcf # 3 couches matière grise # alphaBDu*alphaBLlcf*
+
+	if w < 0.1516E8:#2.55E8: #Model is Fresnel at low frequencies given by an article
+		k1z = np.sqrt( (1j*8.28E-8* sigd*(2*np.pi*w) - (KDu + 1j*KapDu)**2)) 
+		k2z = np.sqrt( (1j*8.28E-8* sigl*(2*np.pi*w) - (KLCF + 1j*KapLCF)**2)) 		
+		T2cCSF = (k2z/k1z) * abs(k1z*2  /(k1z + k2z) )**2
+
+	if w >= 0.1516E8:#2.55E8:
+		T2cCSF = 4*((nLCF + 1j*nLCFii )/(nDu + 1j*nDuii)).real* (nDu**2 +nDuii**2)/((nLCF + nDu)**2 +(nLCFii+ nDuii)**2 ) * alphaBDu
+
+	T4cMgP.append(T4cMGP*100) #4 couches chemin long 
+	T4cMgP2.append(T4cMGP2*100) #4 couches chemin court 
+	T3cMb.append(T3cMB*100) # 3 couches matière blanche
+	T3cMb2.append(T3cMB2*100) # 3 couches matière blanche
+	T3cMg.append(T3cMG*100)  # 3 couches matière grise
+	T2cCSf.append(T2cCSF*100) #2 couches Dura -> CSF
+
+
+font=31
+fig, ax = plt.subplots(ncols=1, nrows=1,sharex = True,figsize=(13,8)) 
+plt.ylim(-1,100) #Si la transmission dépasse 100%, ça ne va pas vien
+plt.xlim(1E1,1E11) # Les données pertinentes débutent et s'arrêtent à plus haute fréquence, mais les comportement au dessus de 1E11 sont trop ératique pour le modèle je crois
+plt.xscale('log') #Échelle log pour l'Axe des x
+
+plt.hlines(y=0,xmin=0,xmax=1E15,linewidth=2,color='grey',linestyle='dashed') #Guider l'oeil à 0
+plt.axvline(x=1.66666666E3,ymin= 1/101, ymax= 0.344, linewidth= 2, linestyle ='dashed',color='grey') #Endroit du pulse clinique si on m'a bien expliqué. Sinon, c'est 3.3 kHz
+
+T3mb, = plt.plot(omega2[:50],T3cMb[:50],marker='s', markersize=7, linestyle='dashed',linewidth=2, color='black',label= 'Path a, para')# #MB 3 couches 
+T3mg, = plt.plot(omega2,T3cMg, marker='o', markersize=7,  linestyle='dashed',linewidth=2,color='#FF2C16', label='Path b')#MG 3 couches
+T4Mg2, = plt.plot(omega2,T4cMgP2, marker='>', markersize=7, linestyle='-', linewidth=2,color='#1083D4', label='Path c') #MG 4 couches court bleu 
+
+marker_handle = ax.scatter(omega2,T3cMb2,marker='s', s=8**2, facecolors='none', edgecolors='k', linewidths=2,  zorder=3) #label =  'Path a, perp',
+
+for i in range(len(omega2) - 1):
+    # Get current point and next point
+    x1, y1 = omega2[i], T3cMb2[i]
+    x2, y2 = omega2[i+1], T3cMb2[i+1]
+    
+    # Convert data coordinates to display pixels to handle the marker radius accurately
+    p1 = ax.transData.transform((x1, y1))
+    p2 = ax.transData.transform((x2, y2))
+    
+    # Calculate distance and direction vector between points in pixels
+    dp = p2 - p1
+    distance_px = np.hypot(dp[0], dp[1])
+    
+    # Convert marker radius from points to pixels (1 point = dpi / 72 pixels)
+    radius_px = 7 * (fig.dpi / 70.0)
+    
+    # Only draw the line if the distance is greater than the two marker radii combined
+    if distance_px > (1 * radius_px):
+        # Calculate the starting and ending pixel coordinates outside the marker edge
+        start_px = p1 + (dp / distance_px) * radius_px
+        end_px = p2 - (dp / distance_px) * radius_px
+        
+        # Transform pixel coordinates back to data coordinates
+        start_data = ax.transData.inverted().transform(start_px)
+        end_data = ax.transData.inverted().transform(end_px)
+        
+        # Plot the individual line segment
+        line_handle =  ax.plot([start_data[0], end_data[0]], [start_data[1], end_data[1]], linestyle='dashed',color='k', linewidth=2, zorder=2)
+
+leg_line = Line2D([0], [0], color='k', linestyle='dashed', linewidth=2)
+leg_marker = Line2D([0], [0], linestyle='none', marker='s',   markersize=8,  markerfacecolor='none', markeredgecolor='k', 
+                    markeredgewidth=2)
+
+
+
+T4Mg, = ax.plot(omega2,T4cMgP, marker='x', markersize=10, linestyle='dotted', linewidth=3,color='#882255', label='Path d') #MG 4 couches Long 'black' #994F00 brun
+T2csf, = plt.plot(omega2,T2cCSf,marker='*', markersize=10, linestyle='-',linewidth=2,color='tab:green', label='Dura to CSF')#LCF 
+
+#Paramètre du graphique
+plt.xlabel(r'Frequency (Hz)',fontsize=font) # axe x température
+plt.ylabel(r'EF transmission (%)',fontsize=font) #axe y delta s
+
+plt.annotate(text=r'(i)', xy=(3E10,92), fontsize=font) #Gm blue
+
+ax.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax.tick_params(which='minor',width=2, length=5)
+
+plt.tick_params(axis='both', which='major',width=3, length=10, labelsize=font)
+plt.xticks([1E1,1E3,1E5,1E7,1E9,1E11])
+
+#Positionnement légende et layout
+#plt.legend( ncol=2, loc='best',  frameon = True,fontsize = font-6)
+blank_handle = plt.plot([], [], color="none")[0]
+# Association sécurisée dans la légende (Aucun risque de NoneType !)
+all_handles= [T3mb,T3mg, T4Mg2,T4Mg,T2csf,  (leg_line, leg_marker,leg_line),  blank_handle,blank_handle, blank_handle]
+all_labels = ['Path a, para', 'Path b','Path c','Path d','Dura to CSF', 'Path a, perp' , "","",""]
+
+#all_handles= [T3mb,(leg_line, leg_marker, leg_line),T3mg, T4Mg2,T4Mg,T2csf]
+#all_labels = ['Path a, para','Path a, perp', 'Path b','Path c','Path d','Dura to CSF']
+
+ax.legend(ncol=2, loc='best',    handles= all_handles, labels=all_labels, handler_map={tuple: HandlerTuple(ndivide=None)}, frameon= False, fontsize= font-6)
+
+plt.tight_layout()
+#plt.savefig('Transmission.pdf',bbox_inches='tight')
+plt.show() #Montrer le graphique
