@@ -1,0 +1,252 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jul  8 12:42:58 2020
+
+@author: Laurier
+"""
+#import sys
+import numpy as np
+#import os.path
+from matplotlib import pyplot as plt
+#import math
+from scipy.interpolate import interp1d
+import pyqtgraph as pg
+from scipy.optimize import curve_fit
+
+#Parametres du modele de Cole-Cole modifie. Voir Gabriel (article)
+alphaMB= [0.1,0.1,0.3,0.02]#
+DpermMB=[32,100,4E4,3.5E7] #
+tauMB = [7.96E-12,7.96E-9,53.05E-6,7.958E-3] #
+sigmaMB = 0.02
+
+alphaMG= [0.1,0.15,0.22,0.00] # DpermMG[i]/(1+(1j*w*tauMG[i])**(1-alphaMG[i]))  
+DpermMG=[45,400,2E5,4.5E7] #
+tauMG = [7.96E-12,15.92E-9,106.1E-6,5.305E-3] #
+sigmaMG = 0.02
+
+alphaDu= [0.15,0.1,0.2,0] #
+perminfDu = 4
+DpermDu=[40,200,10000,1E6] # 
+tauDu = [7.958E-12,7.958E-9,1.592E-4,1.592E-2] #
+sigmaDu = 0.02 #S/m
+
+sigmaLCF = 1.7
+alphaLCF= [0.1,0,0,0]
+perminfLCF = 4
+DpermLCF=[65,40,0,0]
+tauLCF = [7.958E-12,1.592E-9,1.592E-4,1.592E-2]
+
+perminf = 4
+permvide = 8.8541878128E-12 #varepsilon_0 ou permitivite vide
+
+#Liste des différentes variables
+varepirMB=[]
+varepiiMB=[]
+difMB=[]
+varepirMG=[]
+varepiiMG=[]
+varepirDu=[]
+varepiiDu=[]
+varepirLCF=[]
+varepiiLCF=[]
+
+difMG=[]
+difDu=[]
+difLCF=[]
+TRMG= []
+TRMB= []
+TRML=[]
+TRMLB =[]
+TRMDu=[]
+TRMGii= []
+TRMBii= []
+TRMLii=[]
+TRMLBii =[]
+TRMDuii=[]
+l=0
+print(np.pi)
+omega2=np.logspace(1,11,num=90, endpoint=True, base=10.0, dtype=None, axis=0)
+for w in omega2:
+	#print('Frequence:',w)
+	varepMG = 0
+	varepMB = 0
+	varepDu =0
+	varepLCF=0
+	kG=0
+	kB=0
+	for i in range(len(alphaMG)):
+		varepMG +=  DpermMG[i]/(1+(1j*2*np.pi*w*tauMG[i])**(1-alphaMG[i]))  + sigmaMG/(1j*(2*np.pi*w*permvide))
+		varepMB +=  DpermMB[i]/(1+(1j*w*2*np.pi*tauMB[i])**(1-alphaMB[i]))+ sigmaMB/((1j*2*np.pi*w*permvide))
+		varepLCF += DpermLCF[i]/(1+(1j*2*np.pi*w*tauLCF[i])**(1-alphaLCF[i])) + sigmaLCF/(1j*(2*np.pi*w*permvide))
+		varepDu +=  DpermDu[i]/(1+(1j*2*np.pi*w*tauDu[i])**(1-alphaDu[i])) + sigmaDu/(1j*(2*np.pi*w*permvide))
+		#varep += varep2
+		#print(varepMG)
+		#print(varepDu)
+	varepMB2 = perminf+ varepMB #+ sigmaMB/(1j*(2*np.pi*w*permvide))
+	varepirMB.append(varepMB2.real)
+	varepiiMB.append(varepMB2.imag)
+	varepMG2 = perminf+ varepMG# + sigmaMG/(1j*(2*np.pi*w*permvide))
+	varepirMG.append(varepMG2.real)
+	varepiiMG.append(varepMG2.imag)
+	varepDu2 = perminfDu+ varepDu #+ sigmaDu/(1j*(2*np.pi*w*permvide))
+	varepirDu.append(varepDu2.real)
+	varepiiDu.append(varepDu2.imag)
+	varepLCF2 = perminfLCF+ varepLCF #+ sigmaLCF/(1j*(2*np.pi*w*permvide))
+	varepirLCF.append(varepLCF2.real)
+	varepiiLCF.append(varepLCF2.imag)
+	#print(np.arctan(varepLCF2.imag/varepLCF2.real))
+
+	TRMG.append(varepMG2.real)
+	TRMDu.append(varepDu2.real)
+	TRMB.append(varepMB2.real)
+	TRML.append(varepLCF2.real)
+	TRMGii.append(abs(varepMG2.imag))
+	TRMDuii.append(abs(varepDu2.imag))
+	TRMBii.append(abs(varepMB2.imag))
+	TRMLii.append(abs(varepLCF2.imag))
+	l+=1
+
+#Trace des figures
+font=31
+fig, (ax1,ax2,ax3,ax4) = plt.subplots(ncols=1, nrows=4,figsize=(13,22)) 
+int_permiLCF = interp1d(omega2, TRMGii, 'linear', fill_value='extrapolate')
+
+axa = ax1.twinx()  # instantiate a second axes that shares the same x-axis #Grey
+axa.vlines(x=2.25701971E8,ymin=1E-1,ymax=42,linewidth=2,linestyle='dashed',color='gray') #8E8
+axa.plot(omega2,TRMGii,marker='>',markersize=10,linewidth=4,linestyle='-',color='#DC3220',label=r'n$_{GM}$')
+ax1.plot(omega2,TRMG,marker='o',markersize=10,fillstyle='none',linewidth=2,linestyle='-', color='#1A85FF',label=r'n$_{GM}$')
+
+axb = ax2.twinx()  # instantiate a second axes that shares the same x-axis #White
+axb.plot(omega2,TRMBii,marker='>',markersize=10,linewidth=4,linestyle='-',color='#DC3220',label=r'n$_{WM}$')
+axb.vlines(x=8.4977534E7 ,ymin=3E-3,ymax=40,linewidth=2,linestyle='dashed',color='gray') #1.63E8
+#axb.vlines(x=1.63E8 ,ymin=3E-3,ymax=40,linewidth=2,linestyle='dotted',color='gray') #1.63E8
+ax2.plot(omega2,TRMB,marker='o',markersize=10,fillstyle='none',linewidth=2, color='#1A85FF',linestyle='-',label=r'n$_{WM}$')
+
+axc = ax3.twinx()  # instantiate a second axes that shares the same x-axis #CSF
+axc.vlines(x=4.32876128E8 ,ymin=1E-1,ymax=6E7,linewidth=2,linestyle='dashed',color='gray') #3.1E9
+axc.plot(omega2,TRMLii,marker='>',markersize=10,linewidth=4,linestyle='-',color='#DC3220',label=r'n$_{LCF}$')
+ax3.plot(omega2,TRML,marker='o',markersize=10,fillstyle='none',linewidth=2, color='#1A85FF',linestyle='-',label=r'n$_{LCF}$')
+
+axd = ax4.twinx()  # instantiate a second axes that shares the same x-axis #Dura
+axd.vlines(x=1.707352E6,ymin=1E-1,ymax=680,linewidth=2,linestyle='dashed',color='gray')#8.6E7
+axd.plot(omega2,TRMDuii,marker='>',markersize=10,linewidth=4,linestyle='-',color='#DC3220',label=r'n$_{Dura}$')
+ax4.plot(omega2,TRMDu,marker='o',markersize=10,fillstyle='none',linewidth=2, color='#1A85FF',linestyle='-',label=r'n$_{Dura}$')
+
+ax4.set_xlabel(r"Frequency (Hz)",fontsize=font) # axe x température
+ax2.set_ylabel(r"Real part of relative permittivity ($\varepsilon_r$')" ,color='#1A85FF',y=-0.1,labelpad=20,fontsize=font) #axe y delta s
+axb.set_ylabel(r'Complex part of relative permittivity ($\varepsilon_r$") ',color='#DC3220',y=-0.13,rotation=270,labelpad=40,fontsize=font)
+
+ax1.set_ylim(3E0,7E7)
+ax1.set_xlim(1E1,1E11)
+ax2.set_ylim(3E0,4E7)
+ax2.set_xlim(1E1,1E11)
+ax3.set_ylim(8E0,1.3E2)
+ax3.set_xlim(1E1,1E11)
+ax4.set_ylim(2E0,1E6)
+ax4.set_xlim(1E1,1E11)
+axa.set_ylim(1E0,2E8)
+axb.set_ylim(1E0,1E8)
+axc.set_ylim(1E0,1E10)
+axd.set_ylim(1E0,1E8)
+
+ax1.tick_params(axis='both', which='major', labelsize=font)
+axa.tick_params(axis='both', which='major', labelsize=font)
+ax2.tick_params(axis='both', which='major', labelsize=font)
+axb.tick_params(axis='both', which='major', labelsize=font)
+ax3.tick_params(axis='both', which='major', labelsize=font)
+axc.tick_params(axis='both', which='major', labelsize=font)
+ax4.tick_params(axis='both', which='major', labelsize=font)
+axd.tick_params(axis='both', which='major', labelsize=font)
+
+ax1.xaxis.set_tick_params(width=3, length=10)
+ax1.yaxis.set_tick_params(width=3, length=10)
+ax2.xaxis.set_tick_params(width=3, length=10)
+ax2.yaxis.set_tick_params(width=3, length=10)
+ax3.xaxis.set_tick_params(width=3, length=10)
+ax3.yaxis.set_tick_params(width=3, length=10)
+ax4.xaxis.set_tick_params(width=3, length=10)
+ax4.yaxis.set_tick_params(width=3, length=10)
+axa.yaxis.set_tick_params(width=3, length=10)
+axb.yaxis.set_tick_params(width=3, length=10)
+axc.yaxis.set_tick_params(width=3, length=10)
+axd.yaxis.set_tick_params(width=3, length=10)
+
+ax1.set_xscale('log')
+ax1.set_yscale('log')
+axa.set_yscale('log')
+
+ax2.set_yscale('log')
+ax2.set_xscale('log')
+axb.set_yscale('log')
+ax3.set_yscale('log')
+ax3.set_xscale('log')
+axc.set_yscale('log')
+ax4.set_yscale('log')
+ax4.set_xscale('log')
+axd.set_yscale('log')
+
+ax1.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax1.tick_params(which='minor',width=1, length=5)
+ax2.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax2.tick_params(which='minor',width=1, length=5)
+ax3.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax3.tick_params(which='minor',width=1, length=5)
+ax4.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax4.tick_params(which='minor',width=1, length=5)
+
+ax1.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+ax1.tick_params(which='minor',width=1, length=5)
+ax2.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+ax2.tick_params(which='minor',width=1, length=5)
+ax3.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+ax3.tick_params(which='minor',width=1, length=5)
+ax4.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+ax4.tick_params(which='minor',width=1, length=5)
+axa.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+axa.tick_params(which='minor',width=1, length=5)
+axb.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+axb.tick_params(which='minor',width=1, length=5)
+axc.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+axc.tick_params(which='minor',width=1, length=5)
+axd.yaxis.get_minor_locator().set_params(numticks=12, subs=[.2,.3,.4,.5,.6,.7,.8,.9])
+axd.tick_params(which='minor',width=1, length=5)
+
+ax1.spines['left'].set_color('#1A85FF')
+ax1.tick_params(axis='y',which='both',  colors='#1A85FF') #D41159
+axa.spines['right'].set_color('#DC3220')
+axa.tick_params(axis='y',which='both',  colors='#DC3220')##D41159') 
+ax2.spines['left'].set_color('#1A85FF')
+ax2.tick_params(axis='y',which='both',  colors='#1A85FF') #D41159
+axb.spines['right'].set_color('#DC3220')
+axb.tick_params(axis='y',which='both',  colors='#DC3220')##D41159') 
+ax3.spines['left'].set_color('#1A85FF')
+ax3.tick_params(axis='y',which='both',  colors='#1A85FF') #D41159
+axc.spines['right'].set_color('#DC3220')
+axc.tick_params(axis='y',which='both',  colors='#DC3220')##D41159') 
+ax4.spines['left'].set_color('#1A85FF')
+ax4.tick_params(axis='y',which='both',  colors='#1A85FF') #D41159
+axd.spines['right'].set_color('#DC3220')
+axd.tick_params(axis='y',which='both',  colors='#DC3220')##D41159') 
+
+axa.annotate(text='(a)', xy=(1.0E10, 0.07*2E8), fontsize= font)#3.5E9
+axb.annotate(text='(b)', xy=(1.0E10, 0.07*1E8), fontsize= font)
+axc.annotate(text='(c)', xy=(1.0E10, 0.07*1E10), fontsize= font)
+axd.annotate(text='(d)', xy=(1.0E10, 0.07*1E8), fontsize= font)
+
+ax1.set_yticks([1E1,1E2,1E3,1E4,1E5,1E6,1E7])
+ax2.set_yticks([1E1,1E2,1E3,1E4,1E5,1E6,1E7])
+ax3.set_yticks([1E1,1E2])
+ax4.set_yticks([1E1,1E2,1E3,1E4,1E5,1E6])
+axa.set_yticks([1E1,1E3,1E5,1E7])
+axb.set_yticks([1E1,1E3,1E5,1E7])
+axc.set_yticks([1E1,1E3,1E5,1E7,1E9])
+axd.set_yticks([1E2,1E4,1E6,1E8])
+
+ax1.annotate(text=r'Grey Matter', xy=(1E3,1E1), xytext=(1E3,1E1),fontsize=font) #Gm blue
+ax2.annotate(text=r'White Matter', xy=(1E3,1E1), xytext=(1E3,1E1),fontsize=font) #Gm blue
+ax3.annotate(text=r'CSF', xy=(1E3,10E0), xytext=(1E3,10E0),fontsize=font) #Gm blue
+ax4.annotate(text=r'Dura', xy=(1E3,7E0), xytext=(1E3,7E0),fontsize=font) #Gm blue
+
+plt.tight_layout()
+#plt.savefig('Permitivite.pdf',bbox_inches='tight')
+plt.show()
