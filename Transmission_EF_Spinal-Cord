@@ -192,7 +192,7 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	if w >= 0.4E7:	
 		T3cMB = 4*((b31))/( rtREE**2 + itREE**2) #* alphaBDu*alphaBLlcf # 3 couches matière blanche # 
 
-  if w < 0.15E7:
+	if w < 0.15E7:
 		T3cMB2 = abs((0.44E-3) /((sigw2/sigd)*(0.44E-3) + 0.44E-3*((sigw2/sigl)- (sigw2/sigd ) ) + (a)*(1- (sigw2/ sigl ) ) ) )**2
 	if w >= 0.15E7:
 		T3cMB2 = 4*((b31))/( rtREE**2 + itREE**2) 
@@ -200,7 +200,7 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	if w < 0.5E6:
 		T3cMG = abs((0.44E-3) /((sigg/sigd)*(0.44E-3) + 0.44E-3*((sigg/sigl)- (sigg/sigd ) )+ (a)*(1- (sigg/ sigl ) ) ) )**2
 
-  if w >= 0.5E6:
+	if w >= 0.5E6:
 		T3cMG =  4*((b311))/(rtREEG**2 + itREEG**2 ) #* alphaBDu*alphaBLlcf # 3 couches matière grise # alphaBDu*alphaBLlcf*
 
 	if w < 0.1516E8:#2.55E8: #Model is Fresnel at low frequencies given by an article
