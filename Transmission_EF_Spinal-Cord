@@ -126,7 +126,7 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	ajrt1 = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a31+a43)+math.sinh(KapMB*(a-b))*a41 ) #Good # Ajouts au composantes réels de F_00 si ni complexe
 	ajrt2 = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b))*((math.cosh(KapMB*(a-b))*(a41)-math.sinh(KapMB*(a-b))*(a43+a31) )) #Good # Ajouts au composantes réels de F_00 si ni complexe
 	ajrt3 = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b))*(-math.cosh(KapMB*(a-b))*(a43*b21+b43*a21+a32)+math.sinh(KapMB*(a-b))*(a21+a42)) #Good # Ajouts au composantes réels de F_00 si ni complexe
-	ajrt4 = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b))*(math.cosh(KapMB*(a-b))*(a21)-math.sinh(KapMB*(a-b))*(a43*b21+b43*a21+a32)) #Good # Ajouts au composantes réels de F_00 si ni complexe
+	ajrt4 = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b))*(math.cosh(KapMB*(a-b))*(a21+a42)-math.sinh(KapMB*(a-b))*(a43*b21+b43*a21+a32)) #Good # Ajouts au composantes réels de F_00 si ni complexe
 	Rt = (rt1+rt2+rt3+rt4 +ajrt1+ajrt2+ajrt3+ajrt4) #Compilation des éléments
 	it1 =  -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(1+b41)-math.sinh(KapMB*(a-b))*(b43 + b31) ) #Good# Composantes complexe de F_00, considérant ni que réel 
 	it2 =  -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b)) *( math.cosh(KapMB*(a-b))*(b21 +b42) - math.sinh(KapMB*(a-b))*(b32 +b43*b21-a21*a43 ) ) #Good# Composantes complexe de F_00, considérant ni que réel
@@ -145,7 +145,7 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	ajrt1b = math.cos(KLCF*a)*math.cosh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a31+a43)+math.sinh(KapMB*(a-b2))*a41 ) #Good #Idem aux cas précédents, mais pour b* (court)
 	ajrt2b = math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2))*((math.cosh(KapMB*(a-b2))*(a41)-math.sinh(KapMB*(a-b2))*(a43+a31) )) #Good #Idem aux cas précédents, mais pour b* (court)
 	ajrt3b = math.cos(KLCF*a)*math.sinh(KapLCF*a)*math.sin(KMB*(a-b2))*(-math.cosh(KapMB*(a-b2))*(a43*b21+b43*a21+a32)+math.sinh(KapMB*(a-b2))*(a21+a42)) #Good #Idem aux cas précédents, mais pour b* (court)
-	ajrt4b = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2))*(math.cosh(KapMB*(a-b2))*(a21)-math.sinh(KapMB*(a-b2))*(a43*b21+b43*a21+a32)) #Good #Idem aux cas précédents, mais pour b* (court)
+	ajrt4b = math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2))*(math.cosh(KapMB*(a-b2))*(a21+a42)-math.sinh(KapMB*(a-b2))*(a43*b21+b43*a21+a32)) #Good #Idem aux cas précédents, mais pour b* (court)
 	Rtb = (rt1b+rt2b+rt3b+rt4b  +ajrt1b+ajrt2b+ajrt3b+ajrt4b) #Compilations des éléments
 	it1b =  -math.sin(KLCF*a)*math.sinh(KapLCF*a)*math.cos(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(1+b41) -math.sinh(KapMB*(a-b2))*(b43 + b31) ) #Good #Idem aux cas précédents, mais pour b* (court) 
 	it2b =  -math.sin(KLCF*a)*math.cosh(KapLCF*a)*math.cos(KMB*(a-b2)) *( math.cosh(KapMB*(a-b2))*(b21 +b42) - math.sinh(KapMB*(a-b2))*(b32 +b43*b21-a21*a43 ) ) #Good #Idem aux cas précédents, mais pour b* (court)
@@ -160,7 +160,7 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	itREE= -math.sin(KLCF*a)*(math.sinh(KapLCF*a)*(1+b31)+math.cosh(KapLCF*a)*(b21 +b32))    +math.cos(KLCF*a)*(math.cosh(KapLCF*a)*a31+math.sinh(KapLCF*a)*(a21+a32)) #Good #Partie réel pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière blanche
 	rtREE= math.cos(KLCF*a)*(math.cosh(KapLCF*a)*(1+b31) + math.sinh(KapLCF*a)*(b21 + b32))    +math.sin(KLCF*a) *(math.sinh(KapLCF*a)*a31 + math.cosh(KapLCF*a)*(a21+a32)) #Good  #Partie imaginaire pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière blanche
 	###
-	itREEG= -math.sin(KLCF*a)*(math.sinh(KapLCF*a)*(1+b31)+math.cosh(KapLCF*a)*(b21 +b322))    +math.cos(KLCF*a)*(math.cosh(KapLCF*a)*a311+math.sinh(KapLCF*a)*(a21+a322)) #Good #Partie réel pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière grise 
+	itREEG= -math.sin(KLCF*a)*(math.sinh(KapLCF*a)*(1+b311)+math.cosh(KapLCF*a)*(b21 +b322))    +math.cos(KLCF*a)*(math.cosh(KapLCF*a)*a311+math.sinh(KapLCF*a)*(a21+a322)) #Good #Partie réel pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière grise 
 	rtREEG= math.cos(KLCF*a)*(math.cosh(KapLCF*a)*(1+b311) + math.sinh(KapLCF*a)*(b21 + b322))     +math.sin(KLCF*a) *(math.sinh(KapLCF*a)*a311 + math.cosh(KapLCF*a)*(a21+a322)) #Good #Partie imaginaire pour trois couchs. Le double espace sert à distinguer l'ajout si ni est considéré complexe. Ici pour matière grise
 	###
 
@@ -175,40 +175,40 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	sigd =	1j*(0.03 - (2*np.pi*w*8.854E-12*(varepDu2 .imag  )))
 	sigl =	1j*(1.65 - (2*np.pi*w*8.854E-12*(varepLCF2.imag   )))
 
-	print('Skin depth', np.sqrt(2/(8.8E-12*2*np.pi*2*abs(sigw2) )), np.sqrt(2/(8.8E-12*2*np.pi*2*abs(sigw) ) ))
 	if w < 0.3E6: #(varepDu2.real**2 + varepDu2.imag**2)/(varepMG2.real**2 + varepMG.imag**2) # (0.23/0.03) *abs(-1/ ((0.23/0.03) - (a*(1-0.23/1.65) +b2*(0.23/0.083))/0.03E-3) )**2 #
 		T4cMGP =  abs((0.44E-3) /( (sigg/sigd)*(0.44E-3) + 0.44E-3*((sigg/sigl)- (sigg/sigd ) )+ a*((sigg/sigw)- (sigg/ sigl ) )+ b*(1- (sigg/sigw)) ) )**2 
 	if w >= 0.3E6:
 		T4cMGP = 4*((b41))/(Rt**2 + It**2) #* alphaBDu*alphaBLlcf*alphaBLmb #4 couches chemin long #alphaBDu*alphaBLlcf*alphaBLmb*	
 	
-	if w < 0.3E6: #(0.23/0.03)*abs(0.3E-3/( (0.23 /0.03)*b + 0.3E-3*(1- 0.23/1.65) + b*(0.23/0.083) ) ) **2 #
+	if w < 0.3E6: #(0.23/0.03)*abs(0.3E-3/( (0.23 /0.03)*b + 0.3E-3*(1- 0.23/1.65) + b*(0.23/0.083) ) ) **2#
 		T4cMGP2 =    abs((0.44E-3) /((sigg/sigd)*(0.44E-3) + 0.44E-3*((sigg/sigl)- (sigg/sigd ) )+ a*((sigg/sigw)- (sigg/ sigl ) )+ b2*(1- (sigg/sigw) ) ))**2 
-		#T4cMGP2 =  (0.23/0.03)*abs(0.3E-3/( (0.23 /0.03)*b + 0.3E-3*(1- 0.23/1.65) + b*(0.23/0.083) ) ) **2 #
 	if w >= 0.3E6:
 		T4cMGP2 =   4*((b41))/(Rtb**2 + Itb**2) #* alphaBDu*alphaBLlcf*alphaBLmb2 #4 couches chemin court #alphaBDu*alphaBLlcf*alphaBLmb2*
 
 	if w < 0.4E7:  # a**2 *(1/abs(a - a *(1-0.083/0.03) -(2.3E-3+0.44E-3)*(1- 0.083/1.65) )**2  )  #
 		T3cMB =     abs((0.44E-3) /((sigw/sigd)*(0.44E-3) + 0.44E-3*((sigw/sigl)- (sigw/sigd ) ) + (a)*(1- (sigw/ sigl ) ) ) )**2 
-	if w >= 0.4E7:	
-		T3cMB = 4*((b31))/( rtREE**2 + itREE**2) #* alphaBDu*alphaBLlcf # 3 couches matière blanche # 
-
 	if w < 0.15E7:
-		T3cMB2 = abs((0.44E-3) /((sigw2/sigd)*(0.44E-3) + 0.44E-3*((sigw2/sigl)- (sigw2/sigd ) ) + (a)*(1- (sigw2/ sigl ) ) ) )**2
+		T3cMB2 =     abs((0.44E-3) /((sigw2/sigd)*(0.44E-3) + 0.44E-3*((sigw2/sigl)- (sigw2/sigd ) ) + (a)*(1- (sigw2/ sigl ) ) ) )**2
+	if w >= 0.4E7:	
+		T3cMB = 4*((b31))/( rtREE**2 + itREE**2) #* alphaBDu*alphaBLlcf # 3 couches matière blanche # alphaBDu*alphaBLlcf*
 	if w >= 0.15E7:
 		T3cMB2 = 4*((b31))/( rtREE**2 + itREE**2) 
 	
 	if w < 0.5E6:
-		T3cMG = abs((0.44E-3) /((sigg/sigd)*(0.44E-3) + 0.44E-3*((sigg/sigl)- (sigg/sigd ) )+ (a)*(1- (sigg/ sigl ) ) ) )**2
-
+		##T3cMG = 4 * ((nDu + 1j*nDuii)*np.conj(nMG + 1j*nMGii)).real/((nMG + nDu)**2 +(nMGii+ nDuii)**2 )
+		T3cMG = abs((0.44E-3) /((sigg/sigd)*(0.44E-3) + 0.44E-3*((sigg/sigl)- (sigg/sigd ) )+ (a)*(1- (sigg/ sigl ) ) ) )**2 #a
 	if w >= 0.5E6:
 		T3cMG =  4*((b311))/(rtREEG**2 + itREEG**2 ) #* alphaBDu*alphaBLlcf # 3 couches matière grise # alphaBDu*alphaBLlcf*
 
-	if w < 0.1516E8:#2.55E8: #Model is Fresnel at low frequencies given by an article
-		k1z = np.sqrt( (1j*8.28E-8* sigd*(2*np.pi*w) - (KDu + 1j*KapDu)**2)) 
-		k2z = np.sqrt( (1j*8.28E-8* sigl*(2*np.pi*w) - (KLCF + 1j*KapLCF)**2)) 		
+	if w < 4.10516E8:#2.55E8:
+		k1z = np.sqrt( (1j*1.25663706127E-6* sigd*(2*np.pi*w) - (KDu + 1j*KapDu)**2)) 
+		k2z = np.sqrt( (1j*1.25663706127E-6* sigl*(2*np.pi*w) - (KLCF + 1j*KapLCF)**2)) 		
 		T2cCSF = (k2z/k1z) * abs(k1z*2  /(k1z + k2z) )**2
 
-	if w >= 0.1516E8:#2.55E8:
+
+	if w >= 4.10516E8:#2.55E8:
+		#T2cCSF = 4* (1j*a21 + b21).real/abs(1 + 1j*a21 + b21)**2 * alphaBDu #4*(nLCF*nDu+nLCFii*nDuii)/( (nDu+nLCF)**2 + (nDuii+nLCFii)**2 ) * alphaBDu #2 couches Dura -> CSF #Complex Fresnel
+		#T2cCSF = 4*((nLCF  )*np.conj(nDu )).real* (nDu**2 +nDuii**2)/abs((nLCF + 1j*nLCFii) +(nDu+ 1j*nDuii) )**2 * alphaBDu
 		T2cCSF = 4*((nLCF + 1j*nLCFii )/(nDu + 1j*nDuii)).real* (nDu**2 +nDuii**2)/((nLCF + nDu)**2 +(nLCFii+ nDuii)**2 ) * alphaBDu
 
 	T4cMgP.append(T4cMGP*100) #4 couches chemin long 
@@ -225,12 +225,21 @@ plt.ylim(-1,100) #Si la transmission dépasse 100%, ça ne va pas vien
 plt.xlim(1E1,1E11) # Les données pertinentes débutent et s'arrêtent à plus haute fréquence, mais les comportement au dessus de 1E11 sont trop ératique pour le modèle je crois
 plt.xscale('log') #Échelle log pour l'Axe des x
 
+#plt.annotate(text='Dura to CSF', xy=(3500 , 45), fontsize= font)#3.5E9
+#plt.annotate(text='Path a, perp', xy=(3500, 12), fontsize= font)#3.5E9
+
 plt.hlines(y=0,xmin=0,xmax=1E15,linewidth=2,color='grey',linestyle='dashed') #Guider l'oeil à 0
 plt.axvline(x=1.66666666E3,ymin= 1/101, ymax= 0.344, linewidth= 2, linestyle ='dashed',color='grey') #Endroit du pulse clinique si on m'a bien expliqué. Sinon, c'est 3.3 kHz
 
-T3mb, = plt.plot(omega2[:50],T3cMb[:50],marker='s', markersize=7, linestyle='dashed',linewidth=2, color='black',label= 'Path a, para')# #MB 3 couches 
-T3mg, = plt.plot(omega2,T3cMg, marker='o', markersize=7,  linestyle='dashed',linewidth=2,color='#FF2C16', label='Path b')#MG 3 couches
-T4Mg2, = plt.plot(omega2,T4cMgP2, marker='>', markersize=7, linestyle='-', linewidth=2,color='#1083D4', label='Path c') #MG 4 couches court bleu 
+#gg=(min(omega2, key=lambda x: abs(x - 5E7)))
+#print(np.where(omega2==gg))
+#print( omega2[57])
+
+
+T3mb, = plt.plot(omega2[:50],T3cMb[:50],marker='s', markersize=7, linestyle='dashed',linewidth=2, color='black',label= 'Path a, para')# #MB 3 couches #tab:pink '#994F00' Brun #40B0A6 Turquoise
+
+T3mg, = plt.plot(omega2,T3cMg, marker='o', markersize=7,  linestyle='dashed',linewidth=2,color='#FF2C16', label='Path b')#MG 3 couches #DC3220 rouge 
+T4Mg2, = plt.plot(omega2,T4cMgP2, marker='>', markersize=7, linestyle='-', linewidth=2,color='#1083D4', label='Path c') #MG 4 couches court bleu #1A85FF #88CCEE #DDCC77 #CC6677
 
 marker_handle = ax.scatter(omega2,T3cMb2,marker='s', s=8**2, facecolors='none', edgecolors='k', linewidths=2,  zorder=3) #label =  'Path a, perp',
 
@@ -264,10 +273,7 @@ for i in range(len(omega2) - 1):
         line_handle =  ax.plot([start_data[0], end_data[0]], [start_data[1], end_data[1]], linestyle='dashed',color='k', linewidth=2, zorder=2)
 
 leg_line = Line2D([0], [0], color='k', linestyle='dashed', linewidth=2)
-leg_marker = Line2D([0], [0], linestyle='none', marker='s',   markersize=8,  markerfacecolor='none', markeredgecolor='k', 
-                    markeredgewidth=2)
-
-
+leg_marker = Line2D([0], [0], linestyle='none', marker='s',   markersize=8,  markerfacecolor='none', markeredgecolor='k', markeredgewidth=2)
 
 T4Mg, = ax.plot(omega2,T4cMgP, marker='x', markersize=10, linestyle='dotted', linewidth=3,color='#882255', label='Path d') #MG 4 couches Long 'black' #994F00 brun
 T2csf, = plt.plot(omega2,T2cCSf,marker='*', markersize=10, linestyle='-',linewidth=2,color='tab:green', label='Dura to CSF')#LCF 
@@ -285,17 +291,12 @@ plt.tick_params(axis='both', which='major',width=3, length=10, labelsize=font)
 plt.xticks([1E1,1E3,1E5,1E7,1E9,1E11])
 
 #Positionnement légende et layout
-#plt.legend( ncol=2, loc='best',  frameon = True,fontsize = font-6)
 blank_handle = plt.plot([], [], color="none")[0]
 # Association sécurisée dans la légende (Aucun risque de NoneType !)
 all_handles= [T3mb,T3mg, T4Mg2,T4Mg,T2csf,  (leg_line, leg_marker,leg_line),  blank_handle,blank_handle, blank_handle]
 all_labels = ['Path a, para', 'Path b','Path c','Path d','Dura to CSF', 'Path a, perp' , "","",""]
 
-#all_handles= [T3mb,(leg_line, leg_marker, leg_line),T3mg, T4Mg2,T4Mg,T2csf]
-#all_labels = ['Path a, para','Path a, perp', 'Path b','Path c','Path d','Dura to CSF']
-
 ax.legend(ncol=2, loc='best',    handles= all_handles, labels=all_labels, handler_map={tuple: HandlerTuple(ndivide=None)}, frameon= False, fontsize= font-6)
 
 plt.tight_layout()
-#plt.savefig('Transmission.pdf',bbox_inches='tight')
 plt.show() #Montrer le graphique
