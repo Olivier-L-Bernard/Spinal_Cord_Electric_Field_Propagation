@@ -36,6 +36,15 @@ perminfLCF = 4
 DpermLCF=[65,40,0,0]
 tauLCF = [7.958E-12,1.592E-9,1.592E-4,1.592E-2]
 
+
+felec = [1E1, 1E2, 1E3, 10E3, 1E6]
+prelec = [1, 1, 1, 1, 1]
+pielec = [1.7E16, 1.7E15, 1.7E14, 1.7E3, 1.7E10]
+selec = 9E6
+sig0 = selec
+preleci =interp1d(felec,prelec,   fill_value='extrapolate')
+pieleci =interp1d(felec,pielec,   fill_value='extrapolate')
+
 perminf = 4
 permvide = 8.8541878128E-12 #Constante de la nature
 
@@ -49,11 +58,6 @@ T3cMb = []
 T3cMb2 = []
 T3cMg = []
 T2cCSf = []
-
-vl = []
-vd = []
-vb = []
-vg = []
 pp=[]
 omega2=np.logspace(1,12,num=95, endpoint=True, base=10.0, dtype=None, axis=0) #Range en fréquence (Hz)
 for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
@@ -82,15 +86,16 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	sigDu2 = sigmaDu + permvide*sigDu
 	sigMb2 = sigmaMB + permvide*sigMb
 	sigLCF2 = sigmaLCF + permvide*sigLCF 
-	varepMB2 = perminf+ varepMB  + sigmaMB/(1j*(w*2*np.pi*permvide)) #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
-	varepMG2 = perminf+ varepMG  + sigmaMG/(1j*(w*2*np.pi*permvide)) #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996 
-	varepDu2 = perminfDu+ varepDu  + sigmaDu/(1j*(w*2*np.pi*permvide)) #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
-	varepLCF2 = perminfLCF+ varepLCF  + sigmaLCF/(1j*(w*2*np.pi*permvide)) #Calculs de permitivité réel et imaginaire avec loi de Cole-Cole modifié, voir les articles de C. et S. Gabriel 1996
 
-	vl.append(varepLCF2)
-	vb.append(varepMB2)
-	vg.append(varepMG2)
-	vd.append(varepDu2)
+	varepMBB  = perminf + varepMB + sigmaMB / (1j * (w * 2 * np.pi * permvide))
+	varepMGG  = perminf + varepMG + sigmaMG / (1j * (w * 2 * np.pi * permvide))
+	varepDuu  = perminfDu + varepDu + sigmaDu / (1j * (w * 2 * np.pi * permvide))
+	varepLCFF = perminfLCF + varepLCF + sigmaLCF / (1j * (w * 2 * np.pi * permvide))
+
+	varepMB2 = varepMBB.real + 1j*abs(varepMBB.imag) 
+	varepMG2 = varepMGG.real + 1j*abs(varepMGG.imag) 
+	varepDu2 = varepDuu.real + 1j*abs(varepDuu.imag)
+	varepLCF2 = varepLCFF.real + 1j*abs(varepLCFF.imag)
 
 
 	lumiere = 2.998E8 #m/s
@@ -98,6 +103,9 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	alphaG= 0.43475 # Paramètre ajustement partie réel de n ; Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
 	alphaL= 0.42 # Paramètre ajustement partie réel de n ; Penfold 1929 - CSF (refractive index...); Khan 2021
 	alphaD= 0.55 # Paramètre ajustement partie réel de n ; Nagel 2018 et Genina 2005
+
+	n0= (np.sqrt(0.5*(np.sqrt(preleci(w)**2 + pieleci(w)**2) +preleci(w))))   # 
+	n0ii= (np.sqrt(0.5*(np.sqrt(preleci(w)**2 + pieleci(w)**2) -preleci(w))))  # 
 	
 	MBA= (varepMB2.imag)
 	nMB= (np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))**(alphaW)   # Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
@@ -121,24 +129,53 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	KMG =   2*np.pi*w*nMG/lumiere #k3 # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
 	KapMG =    2*np.pi*w*nMGii/lumiere #  Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
 
-	sigg =  sigmaMG + 2*np.pi*w*permvide*varepMG2.imag #1j*(0.23 - (2*np.pi*w*8.854E-12*(varepMG2 .imag  )))
-	sigw =	sigmaMB + 2*np.pi*w*permvide*varepMB2.imag
-	sigw2 =	1j*(0.083 - (2*np.pi*w*8.854E-12*(varepMB2 .imag  )))
-	sigd =	sigmaDu + 2*np.pi*w*permvide*varepDu2.imag
-	sigl =	sigmaLCF + 2*np.pi*w*permvide*varepLCF2.imag
+	ovsG = (-1j*2*np.pi*w*permvide*varepMG2) #sigmMG2 # abs(varepMG2.real)/abs(varepMG2.imag) # 2*np.pi*w *permvide* varepMG2.real/ sigmMG2 # sigmaMG # (KMG + 1j*KapMG) / np.sqrt( (1j*1.25663706127E-6* sigmMG2*(2*np.pi*w) - (KMG + 1j*KapMG)**2)) # 
+	ovsB = (-1j*2*np.pi*w*permvide*varepMB2) #sigMb2 # abs(varepMB2.real)/abs(varepMB2.imag) #2 * np.pi * w * permvide* varepMB2.real/  sigMb2 # sigmaMB # (KMB + 1j*KapMB) / np.sqrt( (1j*1.25663706127E-6* sigMb2*(2*np.pi*w) - (KMB + 1j*KapMB)**2)) # 
+	ovsD = (-1j*2*np.pi*w*permvide*varepDu2) #sigDu2 # abs(varepDu2.real)/abs(varepDu2.imag) #2* np.pi * w * permvide* varepDu2.real/ sigDu2 # sigmaDu # (KDu + 1j*KapDu) / np.sqrt( (1j*1.25663706127E-6* sigDu2*(2*np.pi*w) - (KDu + 1j*KapDu)**2)) # 
+	ovsL = (-1j*2*np.pi*w*permvide*varepLCF2) #sigLCF2 # abs(varepLCF2.real)/abs(varepLCF2.imag) #2 * np.pi * w * permvide* varepLCF2.real/ sigLCF2 # (KLCF + 1j*KapLCF) / np.sqrt( (1j*1.25663706127E-6* sigLCF2*(2*np.pi*w) - (KLCF + 1j*KapLCF)**2)) #  sigmaLCF # 
 
-	aa = 1
+	#sigd = 1j*2*np.pi*w*permvide*(varepDu2.real + 1j*abs(varepDu2.imag))
+    #sigl =  1j*2*np.pi*w*permvide*(varepLCF2.real + 1j*abs(varepLCF2.imag)) 
+    #sigw = 1j*2*np.pi*w*permvide*(varepMB2.real + 1j*abs(varepMB2.imag)) 
+    #sigg = 1j*2*np.pi*w*permvide*(varepMG2.real+ 1j*abs(varepMG2.imag))
 
-	if aa ==1:
-		T4cMgP.append(abs(sigmMG2)) #/(w*1E-12)) #4 couches chemin long 
-		T4cMgP2.append(abs(sigMb2)) #/(w*1E-12)) #4 couches chemin court 
-		T3cMb2.append(abs(sigDu2)) #/(w*1E-12)) # 3 couches matière blanche
-		T3cMg.append(abs(sigd)) #/(w*1E-12))  # 3 couches matière grise
-	if aa ==0: 
-		T4cMgP.append(abs(sigg)) #4 couches chemin court 
-		T4cMgP2.append(abs(sigw)) #4 couches chemin court 
-		T3cMb2.append(abs(sigd)) # 3 couches matière blanche
-		T3cMg.append(abs(sigl))  # 3 couches matière grise
+	lslG = 5E-3 / (2*np.pi / np.sqrt(KMG**2 )) #(lumiere/nMG)
+	lslB = 4.4E-3 / (2*np.pi / np.sqrt(KMB**2)) #(lumiere/nMB)
+	lslD = 0.44E-3 / (2*np.pi / np.sqrt(KDu**2)) #(lumiere/nDu)
+	lslL = 2.38E-3 / (2*np.pi / np.sqrt(KLCF**2)) #(lumiere/nLCF)
+
+	glG = (2*np.pi*w/lumiere)* np.sqrt(nMG**2 + nMGii**2) * 5E-3 # np.sqrt( KMG**2 + KapMG**2  )* 5E-3 
+	glB = np.sqrt( KMB**2 + KapMB**2) * 4.4E-3 
+	glD = np.sqrt(KDu**2 + KapDu**2) *0.44E-3 
+	glL = np.sqrt( KLCF**2 + KapLCF**2)*2.38E-3
+
+	tglG = 1E-6 * 2*np.pi*w * np.sqrt(sigmMG2.real**2 + (2*np.pi*2*varepMG2.real )**2   )/(KMG**2 + KapMG**2)
+	tglB = 1E-6 * 2*np.pi*w * np.sqrt(sigMb2.real **2 + (2*np.pi*2*varepMB2.real )**2   )/(KMB**2 + KapMB **2)
+	tglD = 1E-6 * 2*np.pi*w * np.sqrt(sigDu2.real**2 + (2*np.pi*2*varepDu2.real )**2   )/(KDu**2 + KapDu **2)
+	tglL = 1E-6 * 2*np.pi*w * np.sqrt(sigLCF2.real**2 + (2*np.pi*2*varepLCF2.real )**2   )/(KLCF**2 + KapLCF**2)
+
+	aa=0
+	if aa==0:
+		T4cMgP.append(ovsG) #4 couches chemin long 
+		T4cMgP2.append(ovsB) #4 couches chemin court 
+		T3cMb2.append(ovsD) # 3 couches matière blanche
+		T3cMg.append(ovsL)  # 3 couches matière grise
+		TITLEU = r"$\sigma$ "
+
+	if aa==1:
+		T4cMgP.append(lslG) #4 couches chemin long 
+		T4cMgP2.append(lslB) #4 couches chemin court 
+		T3cMb2.append(lslD) # 3 couches matière blanche
+		T3cMg.append(lslL)  # 3 couches matière grise
+		TITLEU = r'$L/\lambda$'
+
+	if aa==2:
+		T4cMgP.append(glG) #4 couches chemin long 
+		T4cMgP2.append(glB) #4 couches chemin court 
+		T3cMb2.append(glD) # 3 couches matière blanche
+		T3cMg.append(glL)  # 3 couches matière grise
+		TITLEU = r'$|\gamma| L$'
+
 
 
 font=31
@@ -152,7 +189,7 @@ plt.yscale('log') #Échelle log pour l'Axe des x
 #plt.annotate(text='Path a, perp', xy=(3500, 12), fontsize= font)#3.5E9
 
 plt.hlines(y=0,xmin=0,xmax=1E15,linewidth=2,color='grey',linestyle='dashed') #Guider l'oeil à 0
-plt.axvline(x=1.66666666E3,ymin= 1/101, ymax= 0.4, linewidth= 2, linestyle ='dashed',color='grey') #Endroit du pulse clinique si on m'a bien expliqué. Sinon, c'est 3.3 kHz
+#plt.axvline(x=1.66666666E3,ymin= 1/101, ymax= 0.4, linewidth= 2, linestyle ='dashed',color='grey') #Endroit du pulse clinique si on m'a bien expliqué. Sinon, c'est 3.3 kHz
 
 #gg=(min(omega2, key=lambda x: abs(x - 5E7)))
 #print(np.where(omega2==gg))
@@ -162,21 +199,15 @@ plt.axvline(x=1.66666666E3,ymin= 1/101, ymax= 0.4, linewidth= 2, linestyle ='das
 #T3mb, = plt.plot(omega2,T3cMb,marker='s', markersize=7, linestyle='dashed',linewidth=2, color='black',label= 'WM Perp')# #MB 3 couches #tab:pink '#994F00' Brun #40B0A6 Turquoise
 
 T3mg, = plt.plot(omega2,T3cMg, marker='o', markersize=7,  linestyle='dashed',linewidth=2,color='#FF2C16', label='CSF')#MG 3 couches #DC3220 rouge 
-T3mg, = plt.plot(omega2, vl , marker='o', markersize=5,  linestyle='dashed',linewidth=2,color='#FF2C16', label='CSF perm')#MG 3 couches #DC3220 rouge 
-
 T4Mg2, = plt.plot(omega2,T4cMgP2, marker='>', markersize=7, linestyle='-', linewidth=2,color='#1083D4', label='WM') #MG 4 couches court bleu #1A85FF #88CCEE #DDCC77 #CC6677
-T4Mg2, = plt.plot(omega2, vb , marker='>', markersize=5, linestyle='-', linewidth=2,color='#1083D4', label='WM perm') #MG 4 couches court bleu #1A85FF #88CCEE #DDCC77 #CC6677
+
 
 T4Mg, = ax.plot(omega2,T4cMgP, marker='x', markersize=10, linestyle='dotted', linewidth=3,color='#882255', label='GM') #MG 4 couches Long 'black' #994F00 brun
-T4Mg, = ax.plot(omega2, vg , marker='x', markersize=5, linestyle='dotted', linewidth=3,color='#882255', label='GM perm') #MG 4 couches Long 'black' #994F00 brun
-
-
 T2csf, = plt.plot(omega2,T3cMb2,marker='*', markersize=10, linestyle='-',linewidth=2,color='tab:green', label='Dura')#LCF 
-T2csf, = plt.plot(omega2,vd,marker='*', markersize=5, linestyle='-',linewidth=2,color='tab:green', label='Dura perm')#LCF 
 
 #Paramètre du graphique
 plt.xlabel(r'Frequency (Hz)',fontsize=font) # axe x température
-plt.ylabel(r'Conductivity (S/m)',fontsize=font) #axe y delta s
+plt.ylabel(TITLEU,fontsize=font) #axe y delta s
 
 plt.annotate(text=r'(i)', xy=(3E10,92), fontsize=font) #Gm blue
 
