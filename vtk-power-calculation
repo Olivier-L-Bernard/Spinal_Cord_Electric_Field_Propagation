@@ -1,0 +1,25 @@
+"""
+Created on Mon Nov  23 14:45:12 2026
+
+@author: O. Bernard
+"""
+import numpy as np
+import pyvista as pv
+
+files = ["TISSUE1.vtk", "TISSUE2.vtk", "TISSUE3.vtk", "TISSUE4.vtk"]
+P_region = {}
+
+for fname in files: 
+       m = pv.read(fname)
+       # Replace 'E' and 'J' by the array name extracted from files using vtk-read:
+       E = m.point_data["electric field"]
+       J = m.point_data["volume current"]
+       m.point_data["p_diss"] = 0.5 * np.sum(E * J, axis=1) #Calculaion of <S>
+
+       # Conversion of data point and integration
+       m_cell = m.point_data_to_cell_data().compute_cell_sizes( length=False, area=False, volume=True )
+       P_region[fname] = np.sum( m_cell.cell_data["p_diss"] * m_cell.cell_data["Volume"] )
+
+P_total = sum(P_region.values())
+for k, v in P_region.items():
+       print(f"{k}: P = {v:.6e} W ({100 * v / P_total:.2f}%)")
