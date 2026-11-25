@@ -1,7 +1,9 @@
 import numpy as np
 import math
 from matplotlib import pyplot as plt, ticker as mticker
-
+"
+Works from 0 to 1E12 Hz since at low f, the capacitive terms -> 0
+"
 # np.trapz a ete retire dans NumPy 2.x
 trapz = getattr(np, "trapezoid", None) or np.trapz
 # =========================================================================
