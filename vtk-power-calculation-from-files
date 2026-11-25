@@ -1,6 +1,8 @@
 """
 Created on Mon Nov  23 14:45:12 2026
 
+Script as is needs to be in the same folder as your simulation files, and files must be in .vtk format
+
 @author: O. Bernard
 """
 import numpy as np
@@ -11,11 +13,10 @@ P_region = {}
 
 for fname in files: 
        m = pv.read(fname)
-       # Replace 'E' and 'J' by the array name extracted from files using vtk-read:
+       # Replace 'E' and 'J' by the array name extracted from files using vtk-files-properties-check.py:
        E = m.point_data["electric field"]
        J = m.point_data["volume current"]
        m.point_data["p_diss"] = 0.5 * np.sum(E * J, axis=1) #Calculaion of <S>
-
        # Conversion of data point and integration
        m_cell = m.point_data_to_cell_data().compute_cell_sizes( length=False, area=False, volume=True )
        P_region[fname] = np.sum( m_cell.cell_data["p_diss"] * m_cell.cell_data["Volume"] )
