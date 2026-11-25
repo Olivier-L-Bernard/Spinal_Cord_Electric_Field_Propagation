@@ -305,16 +305,18 @@ for w in omega2:
     GGG2 = trapz( fonction3w, xk)/den_3w #trapz( fonction3wd, xk)
     GGGG2 = trapz( fonction3g,xk)/den_3g #trapz( fonction3gd, xk)
     GH2 = trapz( fonction2, xk)/den_2c #trapz( fonction2d, xk)
-    print(w,GGG2)
+    #print(w,GGG2)
     # Stockage
     g00_final.append(100*G2)
     g00_final2.append(100*GG2)
     g00_final3.append(100*GGG2)
     g00_final4.append(100*GGGG2)
     g00_final5.append(100*GH2)
+    print(ij)
 # Conversion de la liste en tableau de résultats NumPy
 
 plt.ylim(-0.5,36)
+#plt.ylim(-0, 0.9)
 plt.xlim(1E1,1E11)
 
 plt.xscale('log') #Échelle log pour l'Axe des x
