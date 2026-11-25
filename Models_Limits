@@ -101,17 +101,17 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	n0ii= (np.sqrt(0.5*(np.sqrt(preleci(w)**2 + pieleci(w)**2) -preleci(w))))  # 
 	
 	MBA= (varepMB2.imag)
-	nMB= (np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))**(alphaW)   # Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
-	nMBii= 2.5*(np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) -varepMB2.real)))**2   # Gebhart 2006 ; Yaroslavsky2002 (Optical properties of selected native...)
+	nMB= (np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))#**(alphaW)   # Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
+	nMBii= (np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) -varepMB2.real)))#**2   # Gebhart 2006 ; Yaroslavsky2002 (Optical properties of selected native...)
 	MGA=abs((varepMG2.imag))
-	nMG= (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) +0.5*varepMG2.real))**(alphaG) # Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
-	nMGii=   (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) -0.5*varepMG2.real))**(2)   # Gebhart 2006  ; Yaroslavsky2002 (Optical properties of selected native...)
+	nMG= (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) +0.5*varepMG2.real))#**(alphaG) # Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
+	nMGii=   (np.sqrt(0.5*np.sqrt(varepMG2.real**2 + MGA**2) -0.5*varepMG2.real))#**(2)   # Gebhart 2006  ; Yaroslavsky2002 (Optical properties of selected native...)
 	LCFA= abs(varepLCF2.imag)
-	nLCF= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) +0.5*varepLCF2.real))**(alphaL)#  Penfold 1929 - CSF (refractive index...); Khan 2021
+	nLCF= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) +0.5*varepLCF2.real))#**(alphaL)#  Penfold 1929 - CSF (refractive index...); Khan 2021
 	nLCFii= (np.sqrt(0.5*np.sqrt(varepLCF2.real**2 + LCFA**2) -0.5*varepLCF2.real)) #  Wang 2020 (Terahertz spectroscopic diagnosis of early...)
 	DUA= abs(varepDu2.imag)
-	nDu= (np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) +0.5*varepDu2.real ))**(alphaD)  # Nagel 2018 et Genina 2005
-	nDuii=(np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) -0.5*varepDu2.real ))*np.exp(-2*np.pi*w/0.63E14) # Shappey 2022 (Optical properties of human...):Genina2005 (optical clearing...); Filatova2017 (Optical properties...)  comportement exponentielle
+	nDu= (np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) +0.5*varepDu2.real ))#**(alphaD)  # Nagel 2018 et Genina 2005
+	nDuii=(np.sqrt(0.5*np.sqrt(varepDu2.real**2 + DUA**2) -0.5*varepDu2.real ))#*np.exp(-2*np.pi*w/0.63E14) # Shappey 2022 (Optical properties of human...):Genina2005 (optical clearing...); Filatova2017 (Optical properties...)  comportement exponentielle
 
 	KDu =   2*np.pi*w*nDu/lumiere # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
 	KapDu =   2*np.pi*w*nDuii/lumiere # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
@@ -148,7 +148,7 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 		T4cMgP2.append(ovsB) #4 couches chemin court 
 		T3cMb2.append(ovsD) # 3 couches matière blanche
 		T3cMg.append(ovsL)  # 3 couches matière grise
-		TITLEU = r"$\omega \varepsilon_r'/\sigma$ "
+		TITLEU = r"$\omega \varepsilon_{0} \varepsilon_{r}' /\sigma$"
 
 	if aa==1:
 		T4cMgP.append(lslG) #4 couches chemin long 
@@ -162,7 +162,7 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 		T4cMgP2.append(glB) #4 couches chemin court 
 		T3cMb2.append(glD) # 3 couches matière blanche
 		T3cMg.append(glL)  # 3 couches matière grise
-		TITLEU = r'$|\gamma| L$'
+		TITLEU = r'$|\gamma| L \left(\gamma = \omega \sqrt{\sigma^2 + (2 \pi \varepsilon)^2 / (\tilde{K})}\right)$'
 
 
 
@@ -186,12 +186,21 @@ plt.hlines(y=0,xmin=0,xmax=1E15,linewidth=2,color='grey',linestyle='dashed') #Gu
 
 #T3mb, = plt.plot(omega2,T3cMb,marker='s', markersize=7, linestyle='dashed',linewidth=2, color='black',label= 'WM Perp')# #MB 3 couches #tab:pink '#994F00' Brun #40B0A6 Turquoise
 
-T3mg, = plt.plot(omega2,T3cMg, marker='o', markersize=7,  linestyle='dashed',linewidth=2,color='#FF2C16', label='CSF')#MG 3 couches #DC3220 rouge 
-T4Mg2, = plt.plot(omega2,T4cMgP2, marker='>', markersize=7, linestyle='-', linewidth=2,color='#1083D4', label='WM') #MG 4 couches court bleu #1A85FF #88CCEE #DDCC77 #CC6677
 
+T4Mg2, = plt.plot(omega2,T4cMgP2, marker='s',  fillstyle='none',markersize=8, linestyle='-', linewidth=2,color='#2C44E8',markeredgecolor='#2C44E8', label='WM') #MG 4 couches court bleu #1A85FF #88CCEE #DDCC77 #CC6677
+T4Mg, = ax.plot(omega2,T4cMgP, marker='x', markersize=10, linestyle='dotted', linewidth=3,color='k', label='GM') #MG 4 couches Long 'black' #994F00 brun
+T2csf, = plt.plot(omega2,T3cMb2,marker='>', markersize=8, linestyle='-',linewidth=2,color='#FF0000', label='Dura')#LCF 
+T3mg, = plt.plot(omega2,T3cMg, marker='o', fillstyle='none', markersize=8,  linestyle='dashed',linewidth=2,color='#BF4DDA',markeredgecolor='#BF4DDA', label='CSF')#MG 3 couches #DC3220 rouge 
 
-T4Mg, = ax.plot(omega2,T4cMgP, marker='x', markersize=10, linestyle='dotted', linewidth=3,color='#882255', label='GM') #MG 4 couches Long 'black' #994F00 brun
-T2csf, = plt.plot(omega2,T3cMb2,marker='*', markersize=10, linestyle='-',linewidth=2,color='tab:green', label='Dura')#LCF 
+if aa == 0 :
+	ax.annotate(text=r'GM', xy=(1E3,0.216), color= 'k', fontsize=font-4) #Gm blue
+	ax.annotate(text='', xy=(921,0.3146), xytext=(264,0.119723), arrowprops=dict(lw=3,arrowstyle='-'))
+	ax.annotate(text=r'WM', xy=(1E3,0.014), color= '#2C44E8',fontsize=font-4) #Gm blue
+	ax.annotate(text='', xy=( 921, 0.021), xytext=(418, 0.064), arrowprops=dict(lw=3,arrowstyle='-', color = '#2C44E8'))
+	ax.annotate(text=r'CSF', xy=(1E3,4.7E-7), color= '#BF4DDA', fontsize=font-4) #Gm blue
+	ax.annotate(text='', xy=( 921, 7.138E-7), xytext=(437, 1.46E-6), arrowprops=dict(lw=3,arrowstyle='-', color = '#BF4DDA'))
+	ax.annotate(text=r'Dura', xy=(1E3,1.15E-3), color= '#FF0000',fontsize=font-4) #Gm blue
+	ax.annotate(text='', xy=(921, 1.727E-3), xytext=(428, 3.223E-3), arrowprops=dict(lw=3,arrowstyle='-', color = '#FF0000'))
 
 #Paramètre du graphique
 plt.xlabel(r'Frequency (Hz)',fontsize=font) # axe x température
@@ -200,19 +209,21 @@ plt.ylabel(TITLEU,fontsize=font) #axe y delta s
 plt.annotate(text=r'(i)', xy=(3E10,92), fontsize=font) #Gm blue
 
 ax.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax.yaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
 ax.tick_params(which='minor',width=2, length=5)
 
 plt.tick_params(axis='both', which='major',width=3, length=10, labelsize=font)
-plt.xticks([1E1,1E3,1E5,1E7,1E9,1E11])
+plt.xticks([1E1,1E2,1E3,1E4,1E5,1E6,1E7,1E8,1E9,1E10,1E11])
+plt.yticks([1E1,1E0,1E-1,1E-2,1E-3,1E-4,1E-5,1E-6,1E-7])
 
 #Positionnement légende et layout
-blank_handle = plt.plot([], [], color="none")[0]
+#blank_handle = plt.plot([], [], color="none")[0]
 # Association sécurisée dans la légende (Aucun risque de NoneType !)
 #all_handles= [T3mb,T3mg, T4Mg2,T4Mg,T2csf,  (leg_line, leg_marker,leg_line),  blank_handle,blank_handle, blank_handle]
 #all_labels = ['Path a, para', 'Path b','Path c','Path d','Dura to CSF', 'Path a, perp' , "","",""]
 
-ax.legend(ncol=2, loc='best', frameon= False, fontsize= font-6)
+#ax.legend(ncol=2, loc='best', frameon= False, fontsize= font-6)
 
 plt.tight_layout()
-#plt.savefig('Transmission.pdf',bbox_inches='tight')
+plt.savefig('Tlimit.pdf',bbox_inches='tight')
 plt.show() #Montrer le graphique
