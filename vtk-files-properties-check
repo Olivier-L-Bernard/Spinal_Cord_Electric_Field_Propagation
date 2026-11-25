@@ -1,0 +1,11 @@
+"""
+Created on Mon Nov 23 12:42:58 2026
+
+@author: Laurier
+"""
+##########
+import pyvista as pv
+####################
+mesh = pv.read("NAME.vtk")
+print("Point arrays:", mesh.point_data.keys())
+print("Cell arrays:", mesh.cell_data.keys())
