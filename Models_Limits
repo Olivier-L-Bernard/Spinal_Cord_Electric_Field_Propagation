@@ -36,15 +36,6 @@ perminfLCF = 4
 DpermLCF=[65,40,0,0]
 tauLCF = [7.958E-12,1.592E-9,1.592E-4,1.592E-2]
 
-
-felec = [1E1, 1E2, 1E3, 10E3, 1E6]
-prelec = [1, 1, 1, 1, 1]
-pielec = [1.7E16, 1.7E15, 1.7E14, 1.7E3, 1.7E10]
-selec = 9E6
-sig0 = selec
-preleci =interp1d(felec,prelec,   fill_value='extrapolate')
-pieleci =interp1d(felec,pielec,   fill_value='extrapolate')
-
 perminf = 4
 permvide = 8.8541878128E-12 #Constante de la nature
 
@@ -97,8 +88,6 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	alphaL= 0.42 # Paramètre ajustement partie réel de n ; Penfold 1929 - CSF (refractive index...); Khan 2021
 	alphaD= 0.55 # Paramètre ajustement partie réel de n ; Nagel 2018 et Genina 2005
 
-	n0= (np.sqrt(0.5*(np.sqrt(preleci(w)**2 + pieleci(w)**2) +preleci(w))))   # 
-	n0ii= (np.sqrt(0.5*(np.sqrt(preleci(w)**2 + pieleci(w)**2) -preleci(w))))  # 
 	
 	MBA= (varepMB2.imag)
 	nMB= (np.sqrt(0.5*(np.sqrt(varepMB2.real**2 + MBA**2) +varepMB2.real)))#**(alphaW)   # Biswald 2008 (je l'aime pas tant ce papier), Jacques 2013
@@ -122,10 +111,10 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	KMG =   2*np.pi*w*nMG/lumiere #k3 # Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
 	KapMG =    2*np.pi*w*nMGii/lumiere #  Relation de dispersion, k =\omega n/c, mais ici mon w est en Hz, il faut donc multiplie w par 2 pi
 
-	ovsG =  abs(varepMG2.real)/abs(varepMG2.imag) # 2*np.pi*w *permvide* varepMG2.real/ sigmMG2 # sigmaMG # (KMG + 1j*KapMG) / np.sqrt( (1j*1.25663706127E-6* sigmMG2*(2*np.pi*w) - (KMG + 1j*KapMG)**2)) # 
-	ovsB =  abs(varepMB2.real)/abs(varepMB2.imag) #2 * np.pi * w * permvide* varepMB2.real/  sigMb2 # sigmaMB # (KMB + 1j*KapMB) / np.sqrt( (1j*1.25663706127E-6* sigMb2*(2*np.pi*w) - (KMB + 1j*KapMB)**2)) # 
-	ovsD =  abs(varepDu2.real)/abs(varepDu2.imag) #2* np.pi * w * permvide* varepDu2.real/ sigDu2 # sigmaDu # (KDu + 1j*KapDu) / np.sqrt( (1j*1.25663706127E-6* sigDu2*(2*np.pi*w) - (KDu + 1j*KapDu)**2)) # 
-	ovsL =  abs(varepLCF2.real)/abs(varepLCF2.imag) #2 * np.pi * w * permvide* varepLCF2.real/ sigLCF2 # (KLCF + 1j*KapLCF) / np.sqrt( (1j*1.25663706127E-6* sigLCF2*(2*np.pi*w) - (KLCF + 1j*KapLCF)**2)) #  sigmaLCF # 
+	ovsG =  abs(varepMG2.real)/abs(varepMG2.imag) # 2*np.pi*w *permvide* varepMG2.real/ sigmMG2 # sigmaMG # 
+	ovsB =  abs(varepMB2.real)/abs(varepMB2.imag) #2 * np.pi * w * permvide* varepMB2.real/  sigMb2 # sigmaMB #
+	ovsD =  abs(varepDu2.real)/abs(varepDu2.imag) #2* np.pi * w * permvide* varepDu2.real/ sigDu2 # sigmaDu #  
+	ovsL =  abs(varepLCF2.real)/abs(varepLCF2.imag) #2 * np.pi * w * permvide* varepLCF2.real/ sigLCF2 #
 
 	lslG = 5E-3 / (2*np.pi / np.sqrt(KMG**2 )) #(lumiere/nMG)
 	lslB = 4.4E-3 / (2*np.pi / np.sqrt(KMB**2)) #(lumiere/nMB)
@@ -137,55 +126,33 @@ for w in omega2: #Calculs de permitivité réel et imaginaire avec loi de Cole-C
 	glD = np.sqrt(KDu**2 + KapDu**2) *0.44E-3 
 	glL = np.sqrt( KLCF**2 + KapLCF**2)*2.38E-3
 
-	tglG = 1E-6 * 2*np.pi*w * np.sqrt(sigmMG2.real**2 + (2*np.pi*2*varepMG2.real )**2   )/(KMG**2 + KapMG**2)
-	tglB = 1E-6 * 2*np.pi*w * np.sqrt(sigMb2.real **2 + (2*np.pi*2*varepMB2.real )**2   )/(KMB**2 + KapMB **2)
-	tglD = 1E-6 * 2*np.pi*w * np.sqrt(sigDu2.real**2 + (2*np.pi*2*varepDu2.real )**2   )/(KDu**2 + KapDu **2)
-	tglL = 1E-6 * 2*np.pi*w * np.sqrt(sigLCF2.real**2 + (2*np.pi*2*varepLCF2.real )**2   )/(KLCF**2 + KapLCF**2)
-
 	aa=0
-	if aa==0:
+	if aa==0: #Displacement current / static or ionic current
 		T4cMgP.append(ovsG) #4 couches chemin long 
 		T4cMgP2.append(ovsB) #4 couches chemin court 
 		T3cMb2.append(ovsD) # 3 couches matière blanche
 		T3cMg.append(ovsL)  # 3 couches matière grise
 		TITLEU = r"$\omega \varepsilon_{0} \varepsilon_{r}' /\sigma$"
 
-	if aa==1:
+	if aa==1: #Size over wavelength
 		T4cMgP.append(lslG) #4 couches chemin long 
 		T4cMgP2.append(lslB) #4 couches chemin court 
 		T3cMb2.append(lslD) # 3 couches matière blanche
 		T3cMg.append(lslL)  # 3 couches matière grise
 		TITLEU = r'$L/\lambda$'
 
-	if aa==2:
+	if aa==2: #|gamma| L with gamma = sqrt{ conductivity^2 + (2 pi permittivity)^2/K }. It's a more robust test than L/lambda
 		T4cMgP.append(glG) #4 couches chemin long 
 		T4cMgP2.append(glB) #4 couches chemin court 
 		T3cMb2.append(glD) # 3 couches matière blanche
 		T3cMg.append(glL)  # 3 couches matière grise
 		TITLEU = r'$|\gamma| L \left(\gamma = \omega \sqrt{\sigma^2 + (2 \pi \varepsilon)^2 / (\tilde{K})}\right)$'
 
-
-
 font=31
 fig, ax = plt.subplots(ncols=1, nrows=1,sharex = True,figsize=(13,8)) 
-#plt.ylim(-1,100) #Si la transmission dépasse 100%, ça ne va pas vien
 plt.xlim(1E1,1E11) # Les données pertinentes débutent et s'arrêtent à plus haute fréquence, mais les comportement au dessus de 1E11 sont trop ératique pour le modèle je crois
 plt.xscale('log') #Échelle log pour l'Axe des x
 plt.yscale('log') #Échelle log pour l'Axe des x
-
-#plt.annotate(text='Dura to CSF', xy=(3500 , 45), fontsize= font)#3.5E9
-#plt.annotate(text='Path a, perp', xy=(3500, 12), fontsize= font)#3.5E9
-
-plt.hlines(y=0,xmin=0,xmax=1E15,linewidth=2,color='grey',linestyle='dashed') #Guider l'oeil à 0
-#plt.axvline(x=1.66666666E3,ymin= 1/101, ymax= 0.4, linewidth= 2, linestyle ='dashed',color='grey') #Endroit du pulse clinique si on m'a bien expliqué. Sinon, c'est 3.3 kHz
-
-#gg=(min(omega2, key=lambda x: abs(x - 5E7)))
-#print(np.where(omega2==gg))
-#print( omega2[57])
-
-
-#T3mb, = plt.plot(omega2,T3cMb,marker='s', markersize=7, linestyle='dashed',linewidth=2, color='black',label= 'WM Perp')# #MB 3 couches #tab:pink '#994F00' Brun #40B0A6 Turquoise
-
 
 T4Mg2, = plt.plot(omega2,T4cMgP2, marker='s',  fillstyle='none',markersize=8, linestyle='-', linewidth=2,color='#2C44E8',markeredgecolor='#2C44E8', label='WM') #MG 4 couches court bleu #1A85FF #88CCEE #DDCC77 #CC6677
 T4Mg, = ax.plot(omega2,T4cMgP, marker='x', markersize=10, linestyle='dotted', linewidth=3,color='k', label='GM') #MG 4 couches Long 'black' #994F00 brun
@@ -216,14 +183,6 @@ plt.tick_params(axis='both', which='major',width=3, length=10, labelsize=font)
 plt.xticks([1E1,1E2,1E3,1E4,1E5,1E6,1E7,1E8,1E9,1E10,1E11])
 plt.yticks([1E1,1E0,1E-1,1E-2,1E-3,1E-4,1E-5,1E-6,1E-7])
 
-#Positionnement légende et layout
-#blank_handle = plt.plot([], [], color="none")[0]
-# Association sécurisée dans la légende (Aucun risque de NoneType !)
-#all_handles= [T3mb,T3mg, T4Mg2,T4Mg,T2csf,  (leg_line, leg_marker,leg_line),  blank_handle,blank_handle, blank_handle]
-#all_labels = ['Path a, para', 'Path b','Path c','Path d','Dura to CSF', 'Path a, perp' , "","",""]
-
-#ax.legend(ncol=2, loc='best', frameon= False, fontsize= font-6)
-
 plt.tight_layout()
-plt.savefig('Tlimit.pdf',bbox_inches='tight')
+#plt.savefig('Tlimit.pdf',bbox_inches='tight')
 plt.show() #Montrer le graphique
