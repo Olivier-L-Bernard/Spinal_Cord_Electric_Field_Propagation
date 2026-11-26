@@ -1,9 +1,9 @@
 import numpy as np
 import math
 from matplotlib import pyplot as plt, ticker as mticker
-"
+"""
 Works from 0 to 1E12 Hz since at low f, the capacitive terms -> 0
-"
+"""
 # np.trapz a ete retire dans NumPy 2.x
 trapz = getattr(np, "trapezoid", None) or np.trapz
 # =========================================================================
@@ -54,14 +54,15 @@ pct_gm_entry = []
 pct_gms_entry = []
 pct_gm3_entry = []
 
-
-
 we = 1e-3
 kk = np.linspace(-2*np.pi/we, 2*np.pi/we, 6000)
 omega2 = np.logspace(1, 11, num=85, endpoint=True, base=10.0)
+cutooff = 0.4E8
 
 font=31
 fig, ax = plt.subplots(ncols=1, nrows=1,sharex = True,figsize=(13,8)) 
+plt.hlines(y=0,xmin=0,xmax=1E11,linewidth=2,color='grey',linestyle='dashed') #Guider l'oeil à 0
+plt.axvline(x=4E7,ymin= -0.5/36.5, ymax= 17.7/36.5, linewidth= 2, linestyle ='dashed',color='grey') #Endroit du pulse clinique si on m'a bien expliqué. Sinon, c'est 3.3 kHz
 
 # =========================================================================
 # 2. BOUCLE DE CALCUL NUMÉRIQUE VIA NUMPY
@@ -101,20 +102,20 @@ for w in omega2:
 
     # Indices de réfraction (Réels et Imaginaires)
     MBA   = varepMB2.imag
-    nMB   = (np.sqrt(0.5 * (np.sqrt(varepMB2.real**2 + MBA**2) + varepMB2.real)))**1
-    nMBii = (np.sqrt(0.5 * (np.sqrt(varepMB2.real**2 + MBA**2) - varepMB2.real)))**1
+    nMB   = (np.sqrt(0.5 * (np.sqrt(varepMB2.real**2 + MBA**2) + varepMB2.real)))
+    nMBii = (np.sqrt(0.5 * (np.sqrt(varepMB2.real**2 + MBA**2) - varepMB2.real)))
 
     MGA   = abs(varepMG2.imag)
-    nMG   = (np.sqrt(0.5 * np.sqrt(varepMG2.real**2 + MGA**2) + 0.5 * varepMG2.real))**1
-    nMGii = (np.sqrt(0.5 * np.sqrt(varepMG2.real**2 + MGA**2) - 0.5 * varepMG2.real))**1
+    nMG   = (np.sqrt(0.5 * np.sqrt(varepMG2.real**2 + MGA**2) + 0.5 * varepMG2.real))
+    nMGii = (np.sqrt(0.5 * np.sqrt(varepMG2.real**2 + MGA**2) - 0.5 * varepMG2.real))
 
     LCFA   = abs(varepLCF2.imag)
-    nLCF   = (np.sqrt(0.5 * np.sqrt(varepLCF2.real**2 + LCFA**2) + 0.5 * varepLCF2.real))**1
+    nLCF   = (np.sqrt(0.5 * np.sqrt(varepLCF2.real**2 + LCFA**2) + 0.5 * varepLCF2.real))
     nLCFii = (np.sqrt(0.5 * np.sqrt(varepLCF2.real**2 + LCFA**2) - 0.5 * varepLCF2.real))
 
     DUA   = abs(varepDu2.imag)
-    nDu   = (np.sqrt(0.5 * np.sqrt(varepDu2.real**2 + DUA**2) + 0.5 * varepDu2.real))**1
-    nDuii = (np.sqrt(0.5 * np.sqrt(varepDu2.real**2 + DUA**2) - 0.5 * varepDu2.real))*1
+    nDu   = (np.sqrt(0.5 * np.sqrt(varepDu2.real**2 + DUA**2) + 0.5 * varepDu2.real))
+    nDuii = (np.sqrt(0.5 * np.sqrt(varepDu2.real**2 + DUA**2) - 0.5 * varepDu2.real))
 
     # Relations de dispersion (k et \kappa)
     KDu    = 2 * np.pi * w * nDu / lumiere
@@ -164,11 +165,20 @@ for w in omega2:
     ij=0
 
     for kx in kk:
-        gamd = np.sqrt(kx**2 - kkd**2)
-        gaml = np.sqrt(kx**2 - kkl**2)
-        gamw = np.sqrt(kx**2 - kkw**2)
-        gamg = np.sqrt(kx**2 - kkg**2)
-        gamQ = kx
+
+        if w < cutooff :
+            gamd = np.sqrt(kx**2) # - kkd**2)
+            gaml = np.sqrt(kx**2) # - kkl**2)
+            gamw = np.sqrt(kx**2) # - kkw**2)
+            gamg = np.sqrt(kx**2) # - kkg**2)
+            gamQ = kx
+        if w >= cutooff :
+            gamd = np.sqrt(kx**2 - kkd**2)
+            gaml = np.sqrt(kx**2 - kkl**2)
+            gamw = np.sqrt(kx**2 - kkw**2)
+            gamg = np.sqrt(kx**2 - kkg**2)
+            gamQ = kx
+
         yd = (sigd/gamd)
         yl = (sigl/gaml)
         yw = (sigw/gamw)
@@ -215,7 +225,7 @@ for w in omega2:
         vg_gm = np.array([1, yg], dtype=complex)
         vg_wml = mwl @ vg_gm
         vg_wm = mw @ vg_gm
-        vg_csf = ml @ vg_wm
+        vg_csf = ml @ vg_wm 
         v_0 = md @ vg_csf
 
         eraw = v_0[0]
@@ -231,7 +241,7 @@ for w in omega2:
         f_wm.append(0.5 * scale_wm * np.real(vg_wm[0] * np.conj(vg_wm[1])))
         f_gm.append(0.5 * scale_gm * np.real(vg_gm[0] * np.conj(vg_gm[1])))
         f_gms.append(0.5 * scale_gms * np.real(vg_gm[0] * np.conj(vg_gm[1])))
-        f_gm3.append(0.5 * scale_gm3 * np.real(vg_gm[0] * np.conj(vg_gm[1])))
+        f_gm3.append(0.5 * scale_gm3 * np.real(vg_gm[0] * np.conj(vg_gm[1]))) 
 
         # Champ E a la surface (scalé) et admittance d'entree (sans echelle)
         eraw  = GM[0]  ; hraw  = GM[1]
@@ -317,22 +327,34 @@ for w in omega2:
     print(ij)
 # Conversion de la liste en tableau de résultats NumPy
 
+
 plt.ylim(-0.5,36)
 #plt.ylim(-0, 0.9)
 plt.xlim(1E1,1E11)
 
 plt.xscale('log') #Échelle log pour l'Axe des x
 plt.xticks([1E1,1E3,1E5,1E7,1E9,1E11])
+#plt.yticks([0,9,18,27,36])
+plt.yticks([0,5,10,15,20,25,30,35])
+ax.xaxis.get_minor_locator().set_params(numticks=12, subs=[.1,.2,.3,.4,.5,.6,.7,.8,.9])
+ax.tick_params(which='minor',width=2, length=5)
 
 plt.tick_params(which='minor',width=2, length=5)
 plt.tick_params(axis='both', which='major',width=3, length=10, labelsize=font)
 
-plt.plot(omega2,pct_gm_entry,marker='o', label='4c long')
-plt.plot(omega2,pct_gms_entry,marker='x',label='4c court')
-plt.plot(omega2,pct_wm_entry, label='3c MB')
-plt.plot(omega2,pct_gm3_entry, label = '3c MG')
-plt.plot(omega2,pct_csf_entry, label= 'CSF')
+plt.annotate(text=r'(i)', xy=(3E10,33), fontsize=font) #Gm blue
+
+plt.plot(omega2,pct_wm_entry, marker='s', markersize=7, linestyle='dashed',linewidth=2, color='black',label= 'Path a')
+plt.plot(omega2,pct_gm3_entry, marker='o', markersize=7,  linestyle='dashed',linewidth=2,color='#FF2C16',fillstyle='none',markeredgecolor='#FF2C16', label='Path b')
+plt.plot(omega2,pct_gms_entry,marker='>', markersize=7, linestyle='-', linewidth=2,color='#1083D4', label='Path c')
+plt.plot(omega2,pct_gm_entry, marker='x', markersize=10, linestyle='dotted', linewidth=3,color='#882255', label='Path d')
+
+plt.plot(omega2,pct_csf_entry, marker='*', markersize=10, linestyle='-',linewidth=2,color='tab:green', label='Dura to CSF')
+
+plt.xlabel(r'Frequency (Hz)',fontsize=font) # axe x température
+plt.ylabel(r"Power percentage ($\%$)",fontsize=font) #axe y delta s
 
 plt.tight_layout()
 plt.legend(ncol=2, loc='best',   frameon= False, fontsize= 25)
+#plt.savefig('PowerFlux.pdf',bbox_inches='tight')
 plt.show()
